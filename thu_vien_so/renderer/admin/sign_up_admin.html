@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin – Thư Viện Số Sáng Kiến</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  <link rel="stylesheet" href="admin.css"/>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     MÀNN HÌNH ĐĂNG NHẬP
+══════════════════════════════════════ -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="login-icon"><i class="fas fa-shield-alt"></i></div>
+    <h1>Admin Panel</h1>
+    <p>Thư Viện Số · Lữ Đoàn 279</p>
+    <div class="login-field">
+      <i class="fas fa-lock"></i>
+      <input type="password" id="inp-pw" placeholder="Mật khẩu admin"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">
+      <i class="fas fa-sign-in-alt"></i> Xác nhận
+    </button>
+    <div class="login-err" id="login-err">Mật khẩu không đúng</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MÀN HÌNH ADMIN CHÍNH
+══════════════════════════════════════ -->
+<div id="screen-admin" class="screen">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="star"><i class="fas fa-star"></i></div>
+      <h2>Admin Panel</h2>
+      <p>Lữ Đoàn 279</p>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-section">Quản lý</div>
+      <div class="sb-item active" onclick="showPage('dashboard', this)">
+        <i class="fas fa-chart-bar"></i> Tổng quan
+      </div>
+      <div class="sb-item" onclick="showPage('sangkien', this)">
+        <i class="fas fa-list"></i> Sáng kiến
+      </div>
+      <div class="sb-section">Hệ thống</div>
+      <div class="sb-item" onclick="showPage('settings', this)">
+        <i class="fas fa-cog"></i> Cài đặt
+      </div>
+    </div>
+    <div class="sb-footer">
+      <div class="sb-logout" onclick="doLogout()">
+        <i class="fas fa-sign-out-alt"></i> Đăng xuất
+      </div>
+    </div>
+  </div>
+
+  <!-- Main area -->
+  <div class="admin-main">
+
+    <!-- Top bar -->
+    <div class="admin-topbar">
+      <h2 id="page-title">Tổng quan</h2>
+      <div class="topbar-right">
+        <div class="topbar-badge">
+          <i class="fas fa-circle" style="color:#3a7a3a;font-size:8px"></i> ONLINE
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Trang: Tổng quan ── -->
+    <div id="page-dashboard" class="admin-page active">
+      <div class="dash-stats">
+        <div class="dash-stat">
+          <div class="ds-icon"><i class="fas fa-layer-group"></i></div>
+          <div>
+            <div class="ds-num" id="stat-total">0</div>
+            <div class="ds-lbl">Tổng sáng kiến</div>
+          </div>
+        </div>
+        <div class="dash-stat">
+          <div class="ds-icon"><i class="fas fa-shield-alt"></i></div>
+          <div>
+            <div class="ds-num" id="stat-tm">0</div>
+            <div class="ds-lbl">Tham mưu</div>
+          </div>
+        </div>
+        <div class="dash-stat">
+          <div class="ds-icon"><i class="fas fa-flag"></i></div>
+          <div>
+            <div class="ds-num" id="stat-ct">0</div>
+            <div class="ds-lbl">Chính trị</div>
+          </div>
+        </div>
+        <div class="dash-stat">
+          <div class="ds-icon"><i class="fas fa-wrench"></i></div>
+          <div>
+            <div class="ds-num" id="stat-hk">0</div>
+            <div class="ds-lbl">HC-KT</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-hd">
+        <h3>
+          <i class="fas fa-clock" style="color:var(--gold);margin-right:8px"></i>
+          Sáng kiến mới nhất
+        </h3>
+      </div>
+      <table class="mil-table">
+        <thead>
+          <tr>
+            <th>Tên sáng kiến</th>
+            <th>Loại</th>
+            <th>Lĩnh vực</th>
+            <th>Ngày áp dụng</th>
+          </tr>
+        </thead>
+        <tbody id="recent-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- ── Trang: Quản lý sáng kiến ── -->
+    <div id="page-sangkien" class="admin-page">
+      <div class="search-bar">
+        <input class="search-input" id="search-inp"
+               placeholder="Tìm kiếm sáng kiến..."
+               oninput="filterTable()"/>
+        <select class="filter-select" id="filter-linh-vuc" onchange="filterTable()">
+          <option value="">Tất cả lĩnh vực</option>
+          <option value="thammu">Tham mưu</option>
+          <option value="chinhri">Chính trị</option>
+          <option value="hckt">HC-KT</option>
+        </select>
+        <button class="btn-add" onclick="openForm()">
+          <i class="fas fa-plus"></i> Thêm mới
+        </button>
+      </div>
+      <table class="mil-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tên sáng kiến</th>
+            <th>Loại</th>
+            <th>Lĩnh vực</th>
+            <th>Đơn vị</th>
+            <th>Ngày</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="sk-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- ── Trang: Cài đặt ── -->
+    <div id="page-settings" class="admin-page">
+      <div style="max-width:400px">
+        <div class="section-hd" style="margin-bottom:20px">
+          <h3>
+            <i class="fas fa-key" style="color:var(--gold);margin-right:8px"></i>
+            Đổi mật khẩu admin
+          </h3>
+        </div>
+        <div class="form-row">
+          <label>Mật khẩu cũ</label>
+          <input type="password" id="old-pw" placeholder="Nhập mật khẩu hiện tại"/>
+        </div>
+        <div class="form-row">
+          <label>Mật khẩu mới</label>
+          <input type="password" id="new-pw" placeholder="Nhập mật khẩu mới"/>
+        </div>
+        <div class="form-row">
+          <label>Xác nhận mật khẩu mới</label>
+          <input type="password" id="confirm-pw" placeholder="Nhập lại mật khẩu mới"/>
+        </div>
+        <button class="btn-save" onclick="changePassword()" style="margin-top:8px">
+          <i class="fas fa-save"></i> Lưu mật khẩu
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /.admin-main -->
+</div><!-- /#screen-admin -->
+
+<!-- ══════════════════════════════════════
+     MODAL THÊM / SỬA SÁNG KIẾN
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Thêm sáng kiến</h2>
+      <button class="modal-close" onclick="closeForm()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <input type="hidden" id="form-id"/>
+
+      <div class="form-grid">
+        <!-- Tên — full width -->
+        <div class="form-row" style="grid-column:1/-1">
+          <label>Tên sáng kiến *</label>
+          <input type="text" id="form-ten" placeholder="Nhập tên sáng kiến"/>
+        </div>
+        <!-- Loại -->
+        <div class="form-row">
+          <label>Loại *</label>
+          <select id="form-loai">
+            <option value="MÔ PHỎNG 3D">Mô phỏng 3D</option>
+            <option value="PHẦN MỀM">Phần mềm</option>
+            <option value="THIẾT BỊ">Thiết bị</option>
+            <option value="MÔ HÌNH">Mô hình</option>
+            <option value="GIÁO ÁN ĐIỆN TỬ">Giáo án điện tử</option>
+            <option value="THIẾT BỊ & PHẦN MỀM">Thiết bị & Phần mềm</option>
+          </select>
+        </div>
+        <!-- Lĩnh vực -->
+        <div class="form-row">
+          <label>Lĩnh vực *</label>
+          <select id="form-linh-vuc">
+            <option value="thammu">Tham mưu</option>
+            <option value="chinhri">Chính trị</option>
+            <option value="hckt">HC-KT</option>
+          </select>
+        </div>
+        <!-- Đơn vị -->
+        <div class="form-row">
+          <label>Đơn vị</label>
+          <input type="text" id="form-don-vi" placeholder="VD: Lữ đoàn 279/BCCB"/>
+        </div>
+        <!-- Ngày -->
+        <div class="form-row">
+          <label>Ngày áp dụng</label>
+          <input type="text" id="form-ngay" placeholder="VD: 4/2025"/>
+        </div>
+        <!-- Mô tả — full width -->
+        <div class="form-row" style="grid-column:1/-1">
+          <label>Mô tả</label>
+          <textarea id="form-mo-ta" placeholder="Mô tả ngắn (tuỳ chọn)"></textarea>
+        </div>
+      </div>
+
+      <!-- Danh sách tác giả -->
+      <div class="authors-section">
+        <div class="sec-title">Danh sách tác giả</div>
+        <!-- Header hàng -->
+        <div class="author-row" style="margin-bottom:4px">
+          <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--gold-d)">CẤP BẬC</span>
+          <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--gold-d)">HỌ VÀ TÊN</span>
+          <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--gold-d)">CHỨC VỤ</span>
+          <span></span>
+        </div>
+        <div id="authors-list"></div>
+        <button class="btn-add-author" onclick="addAuthorRow()">
+          <i class="fas fa-plus"></i> Thêm tác giả
+        </button>
+      </div>
+    </div><!-- /.modal-body -->
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeForm()">Hủy</button>
+      <button class="btn-save"   onclick="saveSangKien()">
+        <i class="fas fa-save"></i> Lưu
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

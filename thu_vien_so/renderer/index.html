@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>THƯ VIỆN SỐ SÁNG KIẾN – Lữ Đoàn 279</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ══ SPLASH ══ -->
+<div id="screen-splash" class="screen active" onclick="goHome()">
+  <div class="splash-grid"></div>
+  <div class="splash-content">
+    <div class="splash-stars">
+      <i class="fas fa-star"></i>
+      <i class="fas fa-star"></i>
+      <i class="fas fa-star"></i>
+    </div>
+    <div class="splash-badge">Lữ đoàn 279 / BCCB · <span class="current-year"></div>
+    <div class="splash-title">
+      THƯ VIỆN SỐ
+      <span>SÁNG KIẾN</span>
+    </div>
+    <div class="splash-sub">Cải tiến kỹ thuật · Chuyển đổi số</div>
+    <div class="splash-divider"></div>
+    <div class="splash-tap">Chạm để bắt đầu</div>
+  </div>
+  <div class="splash-unit">Đơn vị: Lữ đoàn 279 / Binh chủng Công Binh · Năm <span class="current-year"></div>
+</div>
+
+<!-- ══ HOME ══ -->
+<div id="screen-home" class="screen">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="top-logo"><i class="fas fa-star"></i></div>
+      <div class="top-title">
+        <h1>Thư Viện Số Sáng Kiến</h1>
+        <p>Lữ đoàn 279 · BCCB · Năm <span class="current-year"></p>
+      </div>
+    </div>
+    <div class="top-stats">
+      <div class="stat-box"><div class="num">45</div><div class="lbl">Sáng kiến</div></div>
+      <div class="stat-box"><div class="num">19</div><div class="lbl">Qua HĐKH BC</div></div>
+      <div class="stat-box"><div class="num">05</div><div class="lbl">Cấp Binh chủng</div></div>
+      <div class="stat-box"><div class="num">02</div><div class="lbl">Giải BQP</div></div>
+    </div>
+  </div>
+
+  <div class="home-hero">
+    <div class="hero-card">
+      <div class="hc-icon"><i class="fas fa-cube"></i></div>
+      <div><div class="hc-num">3D</div><div class="hc-lbl">Mô phỏng</div></div>
+    </div>
+    <div class="hero-card">
+      <div class="hc-icon"><i class="fas fa-laptop-code"></i></div>
+      <div><div class="hc-num">APP</div><div class="hc-lbl">Phần mềm</div></div>
+    </div>
+    <div class="hero-card">
+      <div class="hc-icon"><i class="fas fa-tools"></i></div>
+      <div><div class="hc-num">THIẾT BỊ</div><div class="hc-lbl">Cải tiến</div></div>
+    </div>
+    <div class="hero-card">
+      <div class="hc-icon"><i class="fas fa-robot"></i></div>
+      <div><div class="hc-num">AI</div><div class="hc-lbl">Ứng dụng</div></div>
+    </div>
+  </div>
+
+  <div class="home-nav">
+    <div class="nav-tab active" onclick="switchTab('all',this)">
+      <i class="fas fa-th"></i> Tất cả
+    </div>
+    <div class="nav-tab" onclick="switchTab('thammu',this)">
+      <i class="fas fa-shield-alt"></i> Tham mưu
+    </div>
+    <div class="nav-tab" onclick="switchTab('chinhri',this)">
+      <i class="fas fa-flag"></i> Chính trị
+    </div>
+    <div class="nav-tab" onclick="switchTab('hckt',this)">
+      <i class="fas fa-wrench"></i> HC-KT
+    </div>
+  </div>
+
+  <div class="home-content" id="home-content">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+<!-- ══ DETAIL ══ -->
+<div id="screen-detail" class="screen">
+  <div class="detail-topbar">
+    <button class="btn-back" id="detail-back-btn">
+      <i class="fas fa-arrow-left"></i> <span id="detail-back-label">Quay lại</span>
+    </button>
+    <div class="detail-topbar-title" id="detail-topbar-title">Chi tiết sáng kiến</div>
+    <button class="btn-home" onclick="goHome()">
+      <i class="fas fa-home"></i> Trang chủ
+    </button>
+  </div>
+  <div class="detail-body">
+    <div class="detail-left">
+      <div class="detail-category" id="d-category"></div>
+      <div class="detail-title"   id="d-title"></div>
+      <div class="info-block">
+        <h3>Thông tin sáng kiến</h3>
+        <div id="d-authors"></div>
+        <div class="info-row"><span class="lbl">Đơn vị</span><span class="val" id="d-unit"></span></div>
+        <div class="info-row"><span class="lbl">Áp dụng</span><span class="val" id="d-date"></span></div>
+        <div class="info-row"><span class="lbl">Lĩnh vực</span><span class="val" id="d-field"></span></div>
+        <div class="stars-row">★★★★★</div>
+      </div>
+      <div class="action-btns">
+        <button class="action-btn primary"><i class="fas fa-play-circle"></i> Xem Video</button>
+        <button class="action-btn secondary"><i class="fas fa-file-alt"></i> Xem Hồ Sơ</button>
+      </div>
+    </div>
+    <div class="detail-right">
+      <div class="files-title"><i class="fas fa-folder-open" style="color:var(--gold)"></i> Hồ sơ đính kèm</div>
+      <div class="file-list">
+        <div class="file-item">
+          <div class="fi-icon"><i class="fas fa-file-pdf"></i></div>
+          <div><div class="fi-name">Thuyết minh sáng kiến</div><div class="fi-sub">PDF · Nội dung chi tiết</div></div>
+          <i class="fas fa-chevron-right fi-arrow"></i>
+        </div>
+        <div class="file-item">
+          <div class="fi-icon"><i class="fas fa-gavel"></i></div>
+          <div><div class="fi-name">Quyết định / Biên bản nghiệm thu</div><div class="fi-sub">PDF · Văn bản pháp lý</div></div>
+          <i class="fas fa-chevron-right fi-arrow"></i>
+        </div>
+        <div class="file-item">
+          <div class="fi-icon"><i class="fas fa-images"></i></div>
+          <div><div class="fi-name">Ảnh trước – sau / Hiện trạng</div><div class="fi-sub">Hình ảnh minh chứng</div></div>
+          <i class="fas fa-chevron-right fi-arrow"></i>
+        </div>
+        <div class="file-item">
+          <div class="fi-icon"><i class="fas fa-drafting-compass"></i></div>
+          <div><div class="fi-name">Bản vẽ / Sơ đồ</div><div class="fi-sub">Tài liệu kỹ thuật</div></div>
+          <i class="fas fa-chevron-right fi-arrow"></i>
+        </div>
+        <div class="file-item">
+          <div class="fi-icon"><i class="fas fa-chart-bar"></i></div>
+          <div><div class="fi-name">Hiệu quả: Số liệu / Chi phí / Thời gian</div><div class="fi-sub">Báo cáo kết quả</div></div>
+          <i class="fas fa-chevron-right fi-arrow"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="renderer.js"></script>
+</body>
+</html>
