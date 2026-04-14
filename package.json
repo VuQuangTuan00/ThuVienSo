@@ -1,8 +1,9 @@
 {
   "name": "thu_vien_so",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "thu_vien_so/main/main.js",
   "scripts": {
+    "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

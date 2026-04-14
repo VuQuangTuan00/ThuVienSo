@@ -43,7 +43,14 @@ function initTables() {
       don_vi        TEXT    NOT NULL DEFAULT '',
       ngay_ap_dung  TEXT    NOT NULL DEFAULT '',
       danh_gia      INTEGER NOT NULL DEFAULT 5,
-      mo_ta         TEXT    DEFAULT '',
+      mo_ta            TEXT    DEFAULT '',
+      link_video       TEXT    DEFAULT '',
+      qr_noi_dung      TEXT    DEFAULT '',
+      file_thuyet_minh TEXT    DEFAULT '',
+      file_quyet_dinh  TEXT    DEFAULT '',
+      file_anh         TEXT    DEFAULT '',
+      file_ban_ve      TEXT    DEFAULT '',
+      file_hieu_qua    TEXT    DEFAULT '',
       created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -139,8 +146,15 @@ function addSangKien(data) {
   const insert = db.transaction((d) => {
     // Insert sáng kiến
     const result = db.prepare(`
-      INSERT INTO sang_kien (ten, loai, linh_vuc, don_vi, ngay_ap_dung, danh_gia, mo_ta)
-      VALUES (@ten, @loai, @linh_vuc, @don_vi, @ngay_ap_dung, @danh_gia, @mo_ta)
+      INSERT INTO sang_kien (
+        ten, loai, linh_vuc, don_vi, ngay_ap_dung, danh_gia, mo_ta,
+        link_video, qr_noi_dung,
+        file_thuyet_minh, file_quyet_dinh, file_anh, file_ban_ve, file_hieu_qua
+      ) VALUES (
+        @ten, @loai, @linh_vuc, @don_vi, @ngay_ap_dung, @danh_gia, @mo_ta,
+        @link_video, @qr_noi_dung,
+        @file_thuyet_minh, @file_quyet_dinh, @file_anh, @file_ban_ve, @file_hieu_qua
+      )
     `).run(d);
 
     const id = result.lastInsertRowid;
@@ -171,6 +185,9 @@ function updateSangKien(id, data) {
       SET ten = @ten, loai = @loai, linh_vuc = @linh_vuc,
           don_vi = @don_vi, ngay_ap_dung = @ngay_ap_dung,
           danh_gia = @danh_gia, mo_ta = @mo_ta,
+          link_video = @link_video, qr_noi_dung = @qr_noi_dung,
+          file_thuyet_minh = @file_thuyet_minh, file_quyet_dinh = @file_quyet_dinh,
+          file_anh = @file_anh, file_ban_ve = @file_ban_ve, file_hieu_qua = @file_hieu_qua,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = @id
     `).run({ ...d, id });

@@ -1,7 +1,7 @@
 // File: src/main/main.js
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
-const { registerIPC } = require('./ipc');
+const { registerIPC } = require('./icp');
 
 app.commandLine.appendSwitch('allow-file-access-from-files');
 app.commandLine.appendSwitch('disable-web-security');
@@ -11,6 +11,7 @@ function createWindow() {
     width: 1400,
     height: 900,
     title: "Thư Viện Số Sáng Kiến – Lữ Đoàn 279",
+    icon: path.join(__dirname, "../../logo-binh-chung-cong-binh.png"),
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -19,7 +20,7 @@ function createWindow() {
     autoHideMenuBar: true
   });
 
-  win.loadFile(path.join(__dirname, '../../renderer/Thu_Vien/index.html'));
+  win.loadFile(path.join(__dirname, '../renderer/index.html'));
   // win.webContents.openDevTools(); // bỏ comment khi debug
 }
 
