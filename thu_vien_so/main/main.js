@@ -1,8 +1,12 @@
 // File: src/main/main.js
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
+const fs   = require('fs');                          // FIX: thêm fs
 const { registerIPC } = require('./icp');
 
+// Thư mục lưu file đính kèm — tạo nếu chưa có
+const FILE_DIR = path.join(app.getPath('userData'), 'files');
+if (!fs.existsSync(FILE_DIR)) fs.mkdirSync(FILE_DIR, { recursive: true });
 // ── Cấu hình hệ thống ──
 app.commandLine.appendSwitch('allow-file-access-from-files');
 app.commandLine.appendSwitch('disable-web-security');
@@ -28,32 +32,35 @@ function createWindow() {
 
 // ── Đăng ký các trình xử lý IPC ──
 function setupHandlers() {
-  // Handler mở file cục bộ
-  ipcMain.handle('open-file', async (event, filePath) => {
-    console.log("== [Main Process] Nhận lệnh mở file ==");
-    console.log("Đường dẫn nhận được:", filePath);
-  
+  ipcMain.handle('open-file', async (_, filePath) => {
     try {
-      if (!fs.existsSync(filePath)) {
-        console.error("LỖI: File không tồn tại tại vị trí này!");
-        return { ok: false, error: "File không tồn tại trên máy tính. Kiểm tra lại đường dẫn." };
+      if (!filePath) return { ok:false, error:'Đường dẫn trống' };
+
+      let fullPath;
+
+      if (path.isAbsolute(filePath)) {
+        // Đường dẫn tuyệt đối: C:/Users/.../file.pdf hoặc /home/.../file.pdf
+        fullPath = filePath;
+      } else {
+        // Chỉ có tên file → tìm trong FILE_DIR
+        fullPath = path.join(FILE_DIR, path.basename(filePath));
       }
-  
-      // 2. Thử mở file bằng ứng dụng mặc định
-      // shell.openPath trả về chuỗi trống "" nếu thành công
-      const errMsg = await shell.openPath(filePath);
-  
-      if (errMsg) {
-        console.error("Lỗi từ hệ thống Windows:", errMsg);
-        return { ok: false, error: errMsg };
+
+      // Chuẩn hóa path cho từng OS
+      fullPath = path.normalize(fullPath);
+
+      if (!fs.existsSync(fullPath)) {
+        return { ok:false, error:'Không tìm thấy file: ' + fullPath };
       }
-  
-      console.log("Mở file thành công!");
-      return { ok: true };
-  
+
+      const result = await shell.openPath(fullPath);
+      // shell.openPath trả về '' nếu thành công, chuỗi lỗi nếu thất bại
+      if (result) return { ok:false, error: result };
+      return { ok:true };
+
     } catch (err) {
-      console.error("Lỗi crash khi mở file:", err.message);
-      return { ok: false, error: err.message };
+      console.error('[open-file] Lỗi:', err);
+      return { ok:false, error: err.message };
     }
   });
 
@@ -83,4 +90,3 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
-
