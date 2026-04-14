@@ -39,6 +39,26 @@ const TAB_LABELS = {
 //  KHỞI ĐỘNG
 // ══════════════════════════════════════
 
+window.openHoSoPath = async function(p) {
+  console.log("Đang yêu cầu mở file:", p);
+  if (!p) {
+    console.warn("Đường dẫn trống.");
+    return;
+  }
+  
+  try {
+    // Gọi sang main process (bạn đã cấu hình trong main.js)
+    const res = await call('open-file', p); 
+    console.log("Kết quả mở file:", res);
+    
+    if (!res || !res.ok) {
+      alert("Không thể mở file. Lỗi: " + (res ? res.error : "Unknown"));
+    }
+  } catch (err) {
+    console.error("Lỗi thực thi IPC:", err);
+  }
+};
+
 async function init() {
   // Hiện loading trong khi tải dữ liệu
   show('screen-loading');
@@ -260,7 +280,7 @@ async function openDetail(id) {
   }
   document.getElementById('d-authors').innerHTML = authHTML;
 
-  renderFilePreview(item.hoSo || []);
+  renderFilePreview(item);
   updateVideoButtonState(item);
 
   show('screen-detail');
@@ -293,60 +313,85 @@ function toYouTubeEmbed(url) {
 function updateVideoButtonState(item) {
   const btn = document.getElementById('btn-xem-video');
   if (!btn) return;
-  const has = item && item.link_video && String(item.link_video).trim();
-  btn.disabled = !has;
-  btn.style.opacity = has ? '1' : '0.55';
+
+  // Kiểm tra link video có tồn tại không
+  const v = item && item.link_video && String(item.link_video).trim();
+
+  if (v) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+
+    // Gán sự kiện click để mở link y hệt như trong openHoSoModal
+    btn.onclick = () => {
+      console.log("Đang mở video:", v);
+      // Cách 1: Mở bằng cửa sổ trình duyệt (như bạn yêu cầu)
+      window.open(v, '_blank', 'noopener,noreferrer');
+      
+      // Cách 2: (Khuyên dùng cho Electron) Mở bằng trình duyệt mặc định của hệ thống
+      // call('open-link-external', v); 
+    };
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.55';
+    btn.style.cursor = 'not-allowed';
+    btn.onclick = null;
+  }
 }
 
-function renderFilePreview(hoSo) {
+// Tìm đến hàm renderFilePreview trong renderer.js và thay thế bằng:
+function renderFilePreview(item) {
   const el = document.getElementById('d-file-preview');
   if (!el) return;
-  if (!hoSo || !hoSo.length) {
-    el.innerHTML = '<div class="file-empty">Chưa có tệp trong cơ sở dữ liệu.</div>';
+
+  // Thu thập danh sách file từ dữ liệu item
+  const files = [
+    { ten: 'Thuyết minh', path: item.file_thuyet_minh },
+    { ten: 'Quyết định', path: item.file_quyet_dinh },
+    { ten: 'Hình ảnh', path: item.file_anh },
+    { ten: 'Bản vẽ', path: item.file_ban_ve },
+    { ten: 'Hiệu quả', path: item.file_hieu_qua }
+  ].filter(f => f.path && String(f.path).trim() !== '');
+
+  if (files.length === 0) {
+    el.innerHTML = '<p style="color:#888; font-size:13px; font-style:italic;">Chưa có tệp đính kèm.</p>';
     return;
   }
-  const max = 4;
-  const slice = hoSo.slice(0, max);
-  const iconFor = (loai) => {
-    const t = (loai || '').toLowerCase();
-    if (t.includes('pdf')) return 'fa-file-pdf';
-    if (t.includes('video') || t.includes('mp4')) return 'fa-file-video';
-    if (t.includes('image') || t.includes('png') || t.includes('jpg')) return 'fa-file-image';
-    return 'fa-file';
-  };
-  let html = '';
-  slice.forEach((f, i) => {
-    html += `
-      <div class="file-item" onclick="openHoSoFile(${i})">
-        <div class="fi-icon"><i class="fas ${iconFor(f.loai_file)}"></i></div>
-        <div>
-          <div class="fi-name">${escapeHtml(f.ten_file || 'Tệp')}</div>
-          <div class="fi-sub">${escapeHtml(f.loai_file || '')}${f.duong_dan ? ' · Nhấn để mở' : ''}</div>
-        </div>
-        <i class="fas fa-chevron-right fi-arrow"></i>
-      </div>`;
+
+  // FIX: Lưu paths vào mảng JS, truyền index vào onclick
+  // → tránh mọi vấn đề escape HTML, ký tự đặc biệt, dấu nháy
+  const _paths = files.map(f => f.path.replace(/\\/g, '/'));
+
+  el.innerHTML = files.map((f, i) => `
+    <div class="file-item" data-idx="${i}">
+      <div class="fi-icon"><i class="fas fa-file-alt"></i></div>
+      <div>
+        <div class="fi-name">${f.ten}</div>
+        <div class="fi-sub">Bấm để mở tệp</div>
+      </div>
+      <i class="fas fa-chevron-right fi-arrow"></i>
+    </div>`).join('');
+
+  // Gán sự kiện sau khi render — đọc path từ mảng JS, không từ HTML
+  el.querySelectorAll('.file-item[data-idx]').forEach(row => {
+    const idx = Number(row.dataset.idx);
+    row.addEventListener('click', () => {
+      console.log('[renderFilePreview] Mở file idx:', idx, 'path:', _paths[idx]);
+      openHoSoPath(_paths[idx]);
+    });
   });
-  if (hoSo.length > max) {
-    html += `<div class="file-empty" style="margin-top:8px">+ ${hoSo.length - max} tệp khác — mở <strong>Xem Hồ Sơ</strong> để xem đầy đủ.</div>`;
-  }
-  el.innerHTML = html;
 }
 
-function openHoSoPath(p) {
-  if (!p || !String(p).trim()) {
-    window.alert('Chưa có đường dẫn tệp trong dữ liệu. Vui lòng cập nhật trong Admin khi có chức năng đính kèm file.');
-    return;
-  }
-  if (isElectron) {
-    try {
-      const { shell } = require('electron');
-      shell.openPath(p);
-    } catch (e) {
-      console.error(e);
+function openHoSoPath(filePath) {
+  if (!filePath) return;
+  
+  // Gửi yêu cầu qua IPC để Main Process mở file bằng hệ thống
+  // Đảm bảo bạn đã cấu hình ipcMain.handle('open-file', ...) ở main.js
+  call('open-file', filePath).then(res => {
+    if (!res.ok) {
+      alert('Không thể mở tệp: ' + res.error);
     }
-  } else {
-    window.open(p, '_blank', 'noopener,noreferrer');
-  }
+  });
 }
 
 window.openHoSoFile = function (index) {
@@ -404,37 +449,50 @@ function openHoSoModal() {
 
   title.textContent = 'Hồ sơ — ' + item.ten;
 
-  const hoSo = item.hoSo || [];
+  // 1. Thu thập các tệp tin từ các trường dữ liệu mới
+  const files = [
+    { ten: 'Thuyết minh', path: item.file_thuyet_minh },
+    { ten: 'Quyết định', path: item.file_quyet_dinh },
+    { ten: 'Hình ảnh sáng kiến', path: item.file_anh },
+    { ten: 'Bản vẽ kỹ thuật', path: item.file_ban_ve },
+    { ten: 'Đánh giá hiệu quả', path: item.file_hieu_qua }
+  ].filter(f => f.path && String(f.path).trim() !== '');
+
   let html = '';
 
-  if (hoSo.length) {
-    html += '<div class="hoso-section-title">Tệp đính kèm</div><div class="file-list">';
-    hoSo.forEach((f, i) => {
+  // 2. Hiển thị danh sách tệp đính kèm
+  html += '<div class="hoso-section-title">Tệp đính kèm</div>';
+  if (files.length) {
+    html += '<div class="file-list">';
+    files.forEach(f => {
+        // FIX: dùng index thay vì nhúng path vào HTML
       html += `
-        <div class="file-item" onclick="openHoSoFile(${i})">
-          <div class="fi-icon"><i class="fas fa-folder-open"></i></div>
+        <div class="file-item hoso-file-item" data-idx="${files.indexOf(f)}">
+          <div class="fi-icon"><i class="fas fa-file-alt"></i></div>
           <div>
-            <div class="fi-name">${escapeHtml(f.ten_file || 'Tệp')}</div>
-            <div class="fi-sub">${escapeHtml(f.loai_file || 'file')}</div>
+            <div class="fi-name">${escapeHtml(f.ten)}</div>
+            <div class="fi-sub">Bấm để xem chi tiết</div>
           </div>
           <i class="fas fa-external-link-alt fi-arrow"></i>
         </div>`;
     });
     html += '</div>';
   } else {
-    html += '<div class="file-empty">Chưa có tệp đính kèm trong cơ sở dữ liệu.</div>';
+    html += '<div class="file-empty">Chưa có tệp đính kèm nào được cập nhật.</div>';
   }
 
+  // 3. GIỮ LẠI: Phần Mã QR
   const qrText = (item.qr_noi_dung || '').trim();
   if (qrText) {
     html += `
-      <div class="hoso-section-title">Mã QR</div>
+      <div class="hoso-section-title">Mã QR Nội dung</div>
       <div class="hoso-qr-wrap">
         <div id="hoso-qrcode"></div>
         <div class="hoso-qr-caption">${escapeHtml(qrText)}</div>
       </div>`;
   }
 
+  // 4. GIỮ LẠI: Phần Liên kết Video
   const v = (item.link_video || '').trim();
   if (v) {
     html += `
@@ -445,22 +503,29 @@ function openHoSoModal() {
       </button>`;
   }
 
-  body.innerHTML = html;
+  // Đưa toàn bộ nội dung vào modal body
+  body.innerHTML = `<div class="hoso-center-wrap">${html}</div>`;
 
+  // FIX: Gán sự kiện dùng index → đọc path từ mảng files (không từ HTML)
+  body.querySelectorAll('.hoso-file-item[data-idx]').forEach(row => {
+    const idx = Number(row.dataset.idx);
+    row.addEventListener('click', () => {
+      const p = files[idx] && files[idx].path.replace(/\\/g, '/');
+      console.log('[openHoSoModal] Mở file idx:', idx, 'path:', p);
+      openHoSoPath(p);
+    });
+  });
+
+  // Xử lý sự kiện mở video ngoài
   const hv = document.getElementById('modal-hoso-open-video');
   if (hv && v) hv.onclick = () => window.open(v, '_blank', 'noopener,noreferrer');
 
+  // Khởi tạo QR Code nếu có dữ liệu (Sử dụng thư viện QRCode.js có sẵn)
   if (qrText && typeof QRCode !== 'undefined') {
     const host = document.getElementById('hoso-qrcode');
     if (host) {
       host.innerHTML = '';
-      // eslint-disable-next-line no-new
       new QRCode(host, { text: qrText, width: 180, height: 180 });
-    }
-  } else if (qrText) {
-    const host = document.getElementById('hoso-qrcode');
-    if (host) {
-      host.innerHTML = '<p class="lib-video-fallback">Không tải được thư viện QR (kiểm tra mạng/CDN).</p>';
     }
   }
 
