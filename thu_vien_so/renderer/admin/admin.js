@@ -7,8 +7,7 @@ let ipc = null;
 try { ipc = require('electron').ipcRenderer; } catch (_) {}
 
 async function call(channel, ...args) {
-  if (!ipc) return { ok:false, error:'Chỉ dùng trong Electron. Chạy: npm start' };
-  return await ipc.invoke(channel, ...args);
+ return await require('electron').ipcRenderer.invoke(channel, ...args);
 }
 
 // ── State ──
@@ -66,6 +65,21 @@ function openLibrary() { window.location.href = '../index.html'; }
 // ══════════════════════════════════════
 //  DASHBOARD
 // ══════════════════════════════════════
+
+async function handleSelectFile(inputId) {
+  const res = await call('admin:pick-and-copy');
+
+  if (!res.ok) {
+    // Người dùng hủy dialog → không làm gì
+    if (res.error) showToast('Lỗi copy file: ' + res.error, 'error');
+    return;
+  }
+
+  // Lưu TÊN FILE vào input (không lưu full path)
+  // Khi mở: main process tự ghép FILE_DIR + fileName
+  document.getElementById(inputId).value = res.fileName;
+  showToast('Đã thêm: ' + res.fileName, 'success');
+}
 
 async function loadDashboard() {
   const sRes = await call('stats:get');
@@ -252,16 +266,12 @@ function getAuthors() {
 }
 
 // ── Chọn file từ máy ──
+// browseFile — KHÔNG dùng trực tiếp nữa
+// Thay bằng handleSelectFile(inputId) để dialog mở qua Electron main process
+// → file được copy vào FILE_DIR, chỉ lưu tên file vào DB
 function browseFile(targetId, accept) {
-  const inp = document.createElement('input');
-  inp.type   = 'file';
-  inp.accept = accept || '*/*';
-  inp.onchange = e => {
-    if (e.target.files[0]) {
-      document.getElementById(targetId).value = e.target.files[0].path || e.target.files[0].name;
-    }
-  };
-  inp.click();
+  // Gọi qua Electron dialog để copy file vào thư viện
+  handleSelectFile(targetId);
 }
 
 async function saveSangKien() {
@@ -278,7 +288,8 @@ async function saveSangKien() {
     mo_ta:            document.getElementById('form-mo-ta').value.trim(),
     link_video:       document.getElementById('form-link-video').value.trim(),
     qr_noi_dung:      document.getElementById('form-qr').value.trim(),
-    // 5 file hồ sơ
+    // 5 file hồ sơ — chỉ lưu TÊN FILE (đã được copy vào FILE_DIR lúc chọn)
+    // Khi mở: renderer gọi 'open-file' với tên file → main ghép FILE_DIR + tên
     file_thuyet_minh: document.getElementById('form-file-thuyet-minh').value.trim(),
     file_quyet_dinh:  document.getElementById('form-file-quyet-dinh').value.trim(),
     file_anh:         document.getElementById('form-file-anh').value.trim(),
