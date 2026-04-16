@@ -7,7 +7,75 @@ let ipc = null;
 try { ipc = require('electron').ipcRenderer; } catch (_) {}
 
 async function call(channel, ...args) {
- return await require('electron').ipcRenderer.invoke(channel, ...args);
+  // Electron thật → IPC → SQLite
+  if (ipc) return await ipc.invoke(channel, ...args);
+
+  // Browser / test → MOCK_DATA
+  return adminMockCall(channel, ...args);
+}
+
+// ── Mock cho Admin (browser/test) ──
+// Dùng window.MOCK_DATA từ mock_data.js
+// Chú ý: thêm/sửa/xóa chỉ ảnh hưởng trong RAM, không lưu thật
+let _mockDb   = null; // lazy copy để tránh mutate MOCK_DATA gốc
+let _mockNext = 100;  // ID bắt đầu từ 100 để phân biệt với mock gốc
+
+function getMockDb() {
+  if (!_mockDb) _mockDb = JSON.parse(JSON.stringify(window.MOCK_DATA || []));
+  return _mockDb;
+}
+
+function adminMockCall(channel, ...args) {
+  const db = getMockDb();
+  switch (channel) {
+    case 'admin:login':
+      // Mật khẩu mặc định khi test browser
+      return { ok: args[0] === 'admin279' };
+
+    case 'admin:changePassword':
+      return { ok: args[0].oldPw === 'admin279' ? true : false,
+               error: 'Mật khẩu cũ không đúng' };
+
+    case 'stats:get':
+      return { ok:true, data: {
+        total:   db.length,
+        thammu:  db.filter(d => d.linh_vuc==='thammu').length,
+        chinhri: db.filter(d => d.linh_vuc==='chinhri').length,
+        hckt:    db.filter(d => d.linh_vuc==='hckt').length,
+      }};
+
+    case 'sangkien:getAll':
+      return { ok:true, data: args[0]
+        ? db.filter(d => d.linh_vuc===args[0])
+        : [...db].reverse() };
+
+    case 'sangkien:add': {
+      const newItem = { ...args[0], id: _mockNext++,
+        authors: args[0].authors || [] };
+      db.push(newItem);
+      return { ok:true, id: newItem.id };
+    }
+
+    case 'sangkien:update': {
+      const { id, data } = args[0];
+      const i = db.findIndex(d => d.id === id);
+      if (i >= 0) db[i] = { ...db[i], ...data, id };
+      return { ok:true };
+    }
+
+    case 'sangkien:delete': {
+      const idx = db.findIndex(d => d.id === args[0]);
+      if (idx >= 0) db.splice(idx, 1);
+      return { ok:true };
+    }
+
+    case 'admin:pick-and-copy':
+      // Không thể copy file thật trên browser
+      return { ok:false, error:'Cần chạy Electron để chọn file' };
+
+    default:
+      return { ok:false, error:'Mock không hỗ trợ: ' + channel };
+  }
 }
 
 // ── State ──
@@ -68,17 +136,14 @@ function openLibrary() { window.location.href = '../index.html'; }
 
 async function handleSelectFile(inputId) {
   const res = await call('admin:pick-and-copy');
-
-  if (!res.ok) {
-    // Người dùng hủy dialog → không làm gì
-    if (res.error) showToast('Lỗi copy file: ' + res.error, 'error');
+  if (res.ok && (res.fileName || res.filePath)) {
+    document.getElementById(inputId).value = (res.fileName || res.filePath).trim();
+    showToast('Đã chọn file thành công', 'success');
     return;
   }
-
-  // Lưu TÊN FILE vào input (không lưu full path)
-  // Khi mở: main process tự ghép FILE_DIR + fileName
-  document.getElementById(inputId).value = res.fileName;
-  showToast('Đã thêm: ' + res.fileName, 'success');
+  if (res.error) {
+    showToast('Lỗi chọn file: ' + res.error, 'error');
+  }
 }
 
 async function loadDashboard() {
@@ -266,12 +331,21 @@ function getAuthors() {
 }
 
 // ── Chọn file từ máy ──
-// browseFile — KHÔNG dùng trực tiếp nữa
-// Thay bằng handleSelectFile(inputId) để dialog mở qua Electron main process
-// → file được copy vào FILE_DIR, chỉ lưu tên file vào DB
 function browseFile(targetId, accept) {
-  // Gọi qua Electron dialog để copy file vào thư viện
-  handleSelectFile(targetId);
+  if (ipc) {
+    handleSelectFile(targetId);
+    return;
+  }
+
+  const inp = document.createElement('input');
+  inp.type   = 'file';
+  inp.accept = accept || '*/*';
+  inp.onchange = e => {
+    if (e.target.files[0]) {
+      document.getElementById(targetId).value = e.target.files[0].path || e.target.files[0].name;
+    }
+  };
+  inp.click();
 }
 
 async function saveSangKien() {
@@ -288,8 +362,7 @@ async function saveSangKien() {
     mo_ta:            document.getElementById('form-mo-ta').value.trim(),
     link_video:       document.getElementById('form-link-video').value.trim(),
     qr_noi_dung:      document.getElementById('form-qr').value.trim(),
-    // 5 file hồ sơ — chỉ lưu TÊN FILE (đã được copy vào FILE_DIR lúc chọn)
-    // Khi mở: renderer gọi 'open-file' với tên file → main ghép FILE_DIR + tên
+    // 5 file hồ sơ
     file_thuyet_minh: document.getElementById('form-file-thuyet-minh').value.trim(),
     file_quyet_dinh:  document.getElementById('form-file-quyet-dinh').value.trim(),
     file_anh:         document.getElementById('form-file-anh').value.trim(),

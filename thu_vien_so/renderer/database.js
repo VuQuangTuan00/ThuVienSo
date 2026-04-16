@@ -5,6 +5,7 @@ const Database = require('better-sqlite3');
 const path     = require('path');
 const fs       = require('fs');
 const { app }  = require('electron');
+const { MOCK_DATA } = require('./mock_data');
 
 // ── Đường dẫn file database ──
 // Lưu trong userData để không bị xóa khi update app
@@ -95,6 +96,46 @@ function initTables() {
   }
 
   console.log('[DB] Khởi tạo bảng thành công');
+}
+
+function seedMockDataIfEmpty() {
+  const seedVersion = 'mock-data-v1';
+  const seeded = db.prepare(
+    "SELECT value FROM config WHERE key = 'mock_seed_version'"
+  ).get();
+  if (seeded && seeded.value === seedVersion) {
+    return;
+  }
+
+  const insertSample = db.transaction((items) => {
+    items.forEach((item) => {
+      addSangKien({
+        ten: item.ten || '',
+        loai: item.loai || '',
+        linh_vuc: item.linh_vuc || 'thammu',
+        don_vi: item.don_vi || '',
+        ngay_ap_dung: item.ngay_ap_dung || '',
+        danh_gia: item.danh_gia || 5,
+        mo_ta: item.mo_ta || '',
+        link_video: item.link_video || '',
+        qr_noi_dung: item.qr_noi_dung || '',
+        file_thuyet_minh: item.file_thuyet_minh || '',
+        file_quyet_dinh: item.file_quyet_dinh || '',
+        file_anh: item.file_anh || '',
+        file_ban_ve: item.file_ban_ve || '',
+        file_hieu_qua: item.file_hieu_qua || '',
+        authors: Array.isArray(item.authors) ? item.authors : []
+      });
+    });
+
+    db.prepare(
+      "INSERT INTO config (key, value) VALUES ('mock_seed_version', ?) " +
+      "ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+    ).run(seedVersion);
+  });
+
+  insertSample(MOCK_DATA || []);
+  console.log(`[DB] Đã nạp ${(MOCK_DATA || []).length} dữ liệu mẫu vào SQLite`);
 }
 
 // ══════════════════════════════════════
@@ -246,6 +287,7 @@ function getStats() {
 
 // ── Khởi tạo khi load module ──
 initTables();
+seedMockDataIfEmpty();
 
 module.exports = {
   getAllSangKien,

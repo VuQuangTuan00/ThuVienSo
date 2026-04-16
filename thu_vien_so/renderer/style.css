@@ -1,21 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600&family=Share+Tech+Mono&display=swap');
 
 :root {
-  --dark:    #1d2f1f;
-  --g1:      #263c29;
-  --g2:      #315136;
-  --g3:      #3f6745;
-  --g4:      #4f7f56;
-  --g5:      #629b6a;
-  --gold:    #e4c05d;
-  --gold-l:  #ffe08a;
-  --gold-d:  #b68f31;
-  --cream:   #fff8ec;
-  --red:     #8b1a1a;
-  --red-l:   #ea5454;
-  --dim:     #bfd0bf;
-  --mid:     #e0ebd9;
-  --mono:    'Share Tech Mono', monospace;
+  --dark:   #417244;   /* sáng hơn: #1d2f1f → #2e4a30 */
+  --g1:     #3a5c3d;   /* sáng hơn: #263c29 → #3a5c3d */
+  --g2:     #486b4c;   /* sáng hơn: #315136 → #486b4c */
+  --g3:     #5a7f5e;   /* sáng hơn: #3f6745 → #5a7f5e */
+  --g4:     #6e9672;   /* sáng hơn: #4f7f56 → #6e9672 */
+  --g5:     #84b089;   /* sáng hơn: #629b6a → #84b089 */
+  --gold:   #e4c05d;
+  --gold-l: #ffe08a;
+  --gold-d: #c9a03a;
+  --cream:  #fff8ec;
+  --red:    #a02020;
+  --red-l:  #ea5454;
+  --dim:    #c8d8c8;
+  --mid:    #e8f0e2;
+  --mono:   'Share Tech Mono', monospace;
+  --success:#5cc360;
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }

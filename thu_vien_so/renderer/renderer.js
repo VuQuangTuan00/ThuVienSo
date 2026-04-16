@@ -14,13 +14,34 @@ try {
 const isElectron = !!ipc;
 
 async function call(channel, ...args) {
-  if (!ipc) {
-    return {
-      ok: false,
-      error: 'Chạy ứng dụng bằng Electron (npm start) để đọc SQLite.'
-    };
+  // Electron thật → dùng IPC → SQLite
+  if (ipc) return await ipc.invoke(channel, ...args);
+
+  // Không có Electron → fallback sang MOCK_DATA (window.MOCK_DATA từ mock_data.js)
+  return mockCall(channel, ...args);
+}
+
+// Mock IPC handler — dùng khi chạy trên browser hoặc test
+function mockCall(channel, ...args) {
+  const data = window.MOCK_DATA || [];
+  switch (channel) {
+    case 'sangkien:getAll':
+      return { ok:true, data: args[0]
+        ? data.filter(d => d.linh_vuc === args[0])
+        : [...data] };
+    case 'sangkien:getById':
+      return { ok:true, data: data.find(d => d.id === args[0]) || null };
+    case 'stats:get':
+      return { ok:true, data: window.MOCK_STATS ||
+        { total:data.length, thammu:0, chinhri:0, hckt:0 } };
+    case 'open-file':
+      return { ok:false, error:'Không tìm thấy — chạy Electron để mở file thật' };
+    case 'open-link-external':
+      window.open(args[0], '_blank', 'noopener,noreferrer');
+      return { ok:true };
+    default:
+      return { ok:false, error:'Mock không hỗ trợ: ' + channel };
   }
-  return await ipc.invoke(channel, ...args);
 }
 
 // ── State ──
@@ -60,26 +81,24 @@ window.openHoSoPath = async function(p) {
 };
 
 async function init() {
-  // Hiện loading trong khi tải dữ liệu
   show('screen-loading');
 
   try {
     const res = await call('sangkien:getAll');
-    if (res.ok) {
+    if (res.ok && res.data && res.data.length > 0) {
       allData = res.data;
+      console.log(`[Thu Vien] Tải ${allData.length} sáng kiến từ SQLite`);
     } else {
-      console.error('[Thu Vien] Lỗi tải dữ liệu:', res.error);
-      allData = [];
+      // Fallback: dùng MOCK_DATA nếu DB rỗng hoặc lỗi
+      allData = window.MOCK_DATA || [];
+      console.warn('[Thu Vien] Dùng dữ liệu mẫu:', res.error || 'DB rỗng');
     }
   } catch (e) {
-    console.error('[Thu Vien] Exception:', e);
-    allData = [];
+    allData = window.MOCK_DATA || [];
+    console.warn('[Thu Vien] Exception, dùng mock:', e.message);
   }
 
-  // Cập nhật stats trên splash / home
   updateStats();
-
-  // Chuyển sang splash sau khi load xong
   show('screen-splash');
 }
 
@@ -339,58 +358,57 @@ function updateVideoButtonState(item) {
   }
 }
 
-// Tìm đến hàm renderFilePreview trong renderer.js và thay thế bằng:
 function renderFilePreview(item) {
   const el = document.getElementById('d-file-preview');
   if (!el) return;
 
-  // Thu thập danh sách file từ dữ liệu item
+  // Chỉ lưu TÊN FILE (đã lưu trong DB)
   const files = [
-    { ten: 'Thuyết minh', path: item.file_thuyet_minh },
-    { ten: 'Quyết định', path: item.file_quyet_dinh },
-    { ten: 'Hình ảnh', path: item.file_anh },
-    { ten: 'Bản vẽ', path: item.file_ban_ve },
-    { ten: 'Hiệu quả', path: item.file_hieu_qua }
-  ].filter(f => f.path && String(f.path).trim() !== '');
+    { ten: 'Thuyết minh', file: item.file_thuyet_minh },
+    { ten: 'Quyết định',  file: item.file_quyet_dinh },
+    { ten: 'Hình ảnh',    file: item.file_anh },
+    { ten: 'Bản vẽ',      file: item.file_ban_ve },
+    { ten: 'Hiệu quả',    file: item.file_hieu_qua }
+  ].filter(f => f.file && String(f.file).trim() !== '');
 
   if (files.length === 0) {
-    el.innerHTML = '<p style="color:#888; font-size:13px; font-style:italic;">Chưa có tệp đính kèm.</p>';
+    el.innerHTML =
+      '<p style="color:#888;font-size:13px;font-style:italic;">Chưa có tệp đính kèm.</p>';
     return;
   }
-
-  // FIX: Lưu paths vào mảng JS, truyền index vào onclick
-  // → tránh mọi vấn đề escape HTML, ký tự đặc biệt, dấu nháy
-  const _paths = files.map(f => f.path.replace(/\\/g, '/'));
 
   el.innerHTML = files.map((f, i) => `
     <div class="file-item" data-idx="${i}">
       <div class="fi-icon"><i class="fas fa-file-alt"></i></div>
       <div>
         <div class="fi-name">${f.ten}</div>
-        <div class="fi-sub">Bấm để mở tệp</div>
+        <div class="fi-sub">${f.file}</div>
       </div>
       <i class="fas fa-chevron-right fi-arrow"></i>
-    </div>`).join('');
+    </div>
+  `).join('');
 
-  // Gán sự kiện sau khi render — đọc path từ mảng JS, không từ HTML
-  el.querySelectorAll('.file-item[data-idx]').forEach(row => {
+  // Gán sự kiện click
+  el.querySelectorAll('.file-item').forEach(row => {
     const idx = Number(row.dataset.idx);
     row.addEventListener('click', () => {
-      console.log('[renderFilePreview] Mở file idx:', idx, 'path:', _paths[idx]);
-      openHoSoPath(_paths[idx]);
+      console.log('[renderFilePreview] Mở file:', files[idx].file);
+      openHoSoPath(files[idx].file);
     });
   });
 }
 
-function openHoSoPath(filePath) {
-  if (!filePath) return;
-  
-  // Gửi yêu cầu qua IPC để Main Process mở file bằng hệ thống
-  // Đảm bảo bạn đã cấu hình ipcMain.handle('open-file', ...) ở main.js
-  call('open-file', filePath).then(res => {
-    if (!res.ok) {
-      alert('Không thể mở tệp: ' + res.error);
+function openHoSoPath(fileName) {
+  if (!fileName) return;
+
+  call('open-file', fileName).then(res => {
+    console.log('[openHoSoPath] Result:', res);
+    if (!res || !res.ok) {
+      alert('Không thể mở tệp: ' + (res?.error || 'Unknown error'));
     }
+  }).catch(err => {
+    console.error('[openHoSoPath] IPC error:', err);
+    alert('Lỗi IPC khi mở file');
   });
 }
 

@@ -100,7 +100,7 @@ function setupHandlers() {
       console.log(`[pick-and-copy] ${path.basename(sourcePath)} → ${fileName}`);
       // Chỉ trả về TÊN FILE (không phải full path) để lưu vào DB
       // Khi mở: ghép FILE_DIR + fileName
-      return { ok: true, fileName };
+      return { ok: true, fileName, filePath: destPath };
     } catch (err) {
       console.error('[pick-and-copy] Lỗi:', err);
       return { ok: false, error: err.message };
@@ -137,6 +137,19 @@ function setupHandlers() {
     }
   });
 
+
+  ipcMain.handle('admin:close-window', (event) => {
+  try {
+    // Lấy cửa sổ đang gửi IPC (chính là cửa sổ admin)
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) win.close();
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
   // ── Mở link ngoài (video, web) ──
   ipcMain.handle('open-link-external', async (_, url) => {
     try {
@@ -170,4 +183,5 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+
 });
