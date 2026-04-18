@@ -164,7 +164,7 @@ async function loadDashboard() {
   }
 
   const recent = dRes.data.slice(0, 8);
-  const LABEL  = { thammu:'Tham mưu', chinhri:'Chính trị', hckt:'HC-KT' };
+  const LABEL  = { thammu:'Tham mưu', chinhri:'Chính trị', hckt:'Hậu cần - Kỹ thuật' };
   const BADGE  = { thammu:'badge-tm', chinhri:'badge-ct',  hckt:'badge-hk' };
 
   document.getElementById('recent-tbody').innerHTML = recent.length
@@ -192,7 +192,7 @@ async function loadSangKien() {
 }
 
 const BADGE_CLASS = { thammu:'badge-tm', chinhri:'badge-ct', hckt:'badge-hk' };
-const BADGE_LABEL = { thammu:'Tham mưu', chinhri:'Chính trị', hckt:'HC-KT' };
+const BADGE_LABEL = { thammu:'Tham mưu', chinhri:'Chính trị', hckt:'Hậu cần - Kỹ thuật' };
 
 function renderTable() {
   const total      = filteredData.length;

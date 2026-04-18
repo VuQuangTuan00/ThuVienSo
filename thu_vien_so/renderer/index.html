@@ -32,6 +32,9 @@
   </a>
 
   <div class="splash-content">
+    <div class="">
+      <img class="unit-logo splash-logo" src="../../logo_bc_cong_binh.png" alt="Logo Binh chung Cong binh">
+    </div>
     <div class="splash-stars">
       <i class="fas fa-star"></i>
       <i class="fas fa-star"></i>
@@ -60,34 +63,41 @@
   <!-- Top bar -->
   <div class="top-bar">
     <div class="top-bar-left">
-      <div class="top-logo"><i class="fas fa-star"></i></div>
+      <div class="top-logo">
+        <img class="unit-logo top-logo-image" src="../../logo_bc_cong_binh.png" alt="Logo Binh chung Cong binh">
+      </div>
       <div class="top-title">
         <h1>Thư Viện Số Sáng Kiến</h1>
         <p>Lữ đoàn 279 · BCCB · Năm 2026</p>
       </div>
     </div>
-    <div class="top-stats">
-      <div class="stat-box">
-        <div class="num" id="stat-total">–</div>
-        <div class="lbl">Sáng kiến</div>
-      </div>
-      <div class="stat-box">
-        <div class="num" id="stat-thammu">–</div>
-        <div class="lbl">Tham mưu</div>
-      </div>
-      <div class="stat-box">
-        <div class="num" id="stat-ct">–</div>
-        <div class="lbl">Chính trị</div>
-      </div>
-      <div class="stat-box">
-        <div class="num" id="stat-hk">–</div>
-        <div class="lbl">HC-KT</div>
+    <div class="top-bar-right">
+      <button type="button" class="btn-start-screen" onclick="goSplash()">
+        <i class="fas fa-display"></i> Màn hình bắt đầu
+      </button>
+      <div class="top-stats">
+        <div class="stat-box">
+          <div class="num" id="stat-total">–</div>
+          <div class="lbl">Sáng kiến</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" id="stat-thammu">–</div>
+          <div class="lbl">Tham mưu</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" id="stat-ct">–</div>
+          <div class="lbl">Chính trị</div>
+        </div>
+        <div class="stat-box">
+          <div class="num" id="stat-hk">–</div>
+          <div class="lbl">Hậu cần - Kỹ thuật</div>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Hero cards -->
-  <div class="home-hero">
+  <!-- <div class="home-hero">
     <div class="hero-card">
       <div class="hc-icon"><i class="fas fa-cube"></i></div>
       <div><div class="hc-num">3D</div><div class="hc-lbl">Mô phỏng</div></div>
@@ -104,7 +114,7 @@
       <div class="hc-icon"><i class="fas fa-robot"></i></div>
       <div><div class="hc-num">AI</div><div class="hc-lbl">Ứng dụng</div></div>
     </div>
-  </div>
+  </div> -->
 
   <!-- Nav tabs -->
   <div class="home-nav">
@@ -118,7 +128,7 @@
       <i class="fas fa-flag"></i> Chính trị
     </div>
     <div class="nav-tab" onclick="switchTab('hckt', this)">
-      <i class="fas fa-wrench"></i> HC-KT
+      <i class="fas fa-wrench"></i> Hậu cần - Kỹ thuật
     </div>
   </div>
 

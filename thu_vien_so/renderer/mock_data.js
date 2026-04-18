@@ -30,7 +30,7 @@ const MOCK_DATA = [
     id: 2, linh_vuc: 'thammu',
     loai: 'MÔ PHỎNG 3D',
     ten: 'Cấu tạo và nguyên lý mìn chống tăng',
-    don_vi: 'Phòng HC-KT, Lữ đoàn 279/BCCB',
+    don_vi: 'Phòng Hậu cần - Kỹ thuật, Lữ đoàn 279/BCCB',
     ngay_ap_dung: '4/2025',
     danh_gia: 5,
     mo_ta: 'Mô phỏng 3D cấu tạo, nguyên lý hoạt động và quy trình sử dụng mìn chống tăng phục vụ huấn luyện.',
@@ -46,7 +46,7 @@ const MOCK_DATA = [
     id: 3, linh_vuc: 'thammu',
     loai: 'MÔ PHỎNG 3D',
     ten: 'Quy trình khoan nổ đường hầm',
-    don_vi: 'Phòng HC-KT, Lữ đoàn 279/BCCB',
+    don_vi: 'Phòng Hậu cần - Kỹ thuật, Lữ đoàn 279/BCCB',
     ngay_ap_dung: '4/2025',
     danh_gia: 5,
     mo_ta: 'Mô phỏng quy trình khoan nổ mìn đào đường hầm theo tiêu chuẩn kỹ thuật công binh.',
@@ -229,7 +229,7 @@ const MOCK_DATA = [
     qr_noi_dung: '',
     file_thuyet_minh: '', file_quyet_dinh: '', file_anh: '', file_ban_ve: '', file_hieu_qua: '',
     authors: [
-      { cap_bac: '2//', ho_ten: 'Vũ Đình Vinh',     chuc_vu: 'Chủ nhiệm HC-KT' },
+      { cap_bac: '2//', ho_ten: 'Vũ Đình Vinh',     chuc_vu: 'Chủ nhiệm Hậu cần - Kỹ thuật' },
       { cap_bac: '4/',  ho_ten: 'Nguyễn Đức Thiện', chuc_vu: 'Trợ lý Xe máy' },
       { cap_bac: '4/',  ho_ten: 'Nguyễn Văn Thành', chuc_vu: 'Phó Trạm trưởng' },
     ]
@@ -297,7 +297,7 @@ const MOCK_DATA = [
     qr_noi_dung: '',
     file_thuyet_minh: '', file_quyet_dinh: '', file_anh: '', file_ban_ve: '', file_hieu_qua: '',
     authors: [
-      { cap_bac: '2//', ho_ten: 'Vũ Đình Vinh',     chuc_vu: 'Chủ nhiệm HC-KT' },
+      { cap_bac: '2//', ho_ten: 'Vũ Đình Vinh',     chuc_vu: 'Chủ nhiệm Hậu cần - Kỹ thuật' },
       { cap_bac: '4/',  ho_ten: 'Nguyễn Đức Thiện', chuc_vu: 'Trợ lý Xe máy' },
       { cap_bac: '4/',  ho_ten: 'Nguyễn Văn Thành', chuc_vu: 'Phó Trạm trưởng' },
     ]

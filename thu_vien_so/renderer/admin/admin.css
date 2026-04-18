@@ -1,22 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600&family=Share+Tech+Mono&display=swap');
 
 :root {
-  --dark:   #2e4a30;   /* sáng hơn: #1d2f1f → #2e4a30 */
-  --g1:     #3a5c3d;   /* sáng hơn: #263c29 → #3a5c3d */
-  --g2:     #486b4c;   /* sáng hơn: #315136 → #486b4c */
-  --g3:     #5a7f5e;   /* sáng hơn: #3f6745 → #5a7f5e */
-  --g4:     #6e9672;   /* sáng hơn: #4f7f56 → #6e9672 */
-  --g5:     #84b089;   /* sáng hơn: #629b6a → #84b089 */
-  --gold:   #e4c05d;
-  --gold-l: #ffe08a;
-  --gold-d: #c9a03a;
-  --cream:  #fff8ec;
-  --red:    #a02020;
-  --red-l:  #ea5454;
-  --dim:    #c8d8c8;
-  --mid:    #e8f0e2;
-  --mono:   'Share Tech Mono', monospace;
-  --success:#5cc360;
+  /* ── Palette Teal – Pinterest #2C6975 #68B2A0 #CDE0C9 #E0ECDE #FFFFFF ── */
+  --dark:    #2c6975;   /* teal đậm  — nền chính, sidebar */
+  --g1:      #1e5460;   /* teal tối  — sidebar bg */
+  --g2:      #2c6975;   /* teal đậm  — card, panel bg */
+  --g3:      #3d7f8a;   /* teal vừa đậm — input bg */
+  --g4:      #4b8f8d;   /* teal mid  — button bg */
+  --g5:      #68b2a0;   /* teal sáng — button hover */
+  --gold:    #68b2a0;   /* accent chính — icon, border sáng */
+  --gold-l:  #a8d4c8;   /* accent nhạt  */
+  --gold-d:  #4b8f8d;   /* accent tối   */
+  --cream:   #ffffff;   /* text chính — trắng trên nền teal */
+  --red:     #8b1a1a;
+  --red-l:   #e05050;
+  --dim:     #a0c4bc;   /* text mờ — teal nhạt */
+  --mid:     #cde0c9;   /* text phụ — mint */
+  --mono:    'Share Tech Mono', monospace;
+  --success: #68b2a0;
+  --teal-10: #e8f5f2;
+  --teal-20: #cde0c9;
+  --teal-40: #68b2a0;
+  --teal-60: #4b8f8d;
+  --teal-80: #2c6975;
+  --teal-90: #1e5460;
 }
 
 /* ── RESET ── */
@@ -24,7 +31,7 @@
 
 body {
   font-family: 'Barlow Condensed', sans-serif;
-  background: var(--dark);
+  background: linear-gradient(135deg, #1e5460 0%, #2c6975 50%, #1e5460 100%);
   color: var(--cream);
   min-height: 100vh;
   overflow: hidden;
@@ -42,7 +49,7 @@ body {
 #screen-login {
   align-items: center;
   justify-content: center;
-  background: var(--dark);
+  background: linear-gradient(135deg, #1e5460 0%, #2c6975 60%, #68b2a0 100%);
   position: relative;
   overflow: hidden;
 }
@@ -144,7 +151,7 @@ body {
 .sidebar {
   width: 220px; flex-shrink: 0;
   background: var(--g1);
-  border-right: 2px solid var(--gold);
+  border-right: 2px solid rgba(104,178,160,0.5);
   display: flex; flex-direction: column;
   overflow: hidden;
 }
