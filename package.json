@@ -1,0 +1,36 @@
+{
+  "name": "thu_vien_so",
+  "version": "1.0.0",
+  "main": "thu_vien_so/main/main.js",
+  "build": {
+    "appId": "com.lu279.thuviensangien",
+    "productName": "Thư Viện Số Sáng Kiến",
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Thư Viện Số"
+    }
+  },
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "electron": "^41.2.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.9.0"
+  }
+}

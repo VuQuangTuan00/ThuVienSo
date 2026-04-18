@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin – Thư Viện Số Sáng Kiến</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  <link rel="stylesheet" href="admin.css"/>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     ĐĂNG NHẬP
+══════════════════════════════════════ -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="login-icon"><i class="fas fa-shield-alt"></i></div>
+    <h1>Admin Panel</h1>
+    <p>Thư Viện Số · Lữ Đoàn 279</p>
+    <div class="login-field">
+      <i class="fas fa-lock"></i>
+      <input type="password" id="inp-pw" placeholder="Mật khẩu admin"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">
+      <i class="fas fa-sign-in-alt"></i> Xác nhận
+    </button>
+    <div class="login-err" id="login-err">Mật khẩu không đúng</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ADMIN CHÍNH
+══════════════════════════════════════ -->
+<div id="screen-admin" class="screen">
+
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="star">
+        <img src="../assets/logo_bc_cong_binh.png">
+      </div>
+      <h2>Admin Panel</h2>
+      <p>Lữ Đoàn 279</p>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-section">Quản lý</div>
+      <div class="sb-item active" onclick="showPage('dashboard',this)">
+        <i class="fas fa-chart-bar"></i> Tổng quan
+      </div>
+      <div class="sb-item" onclick="showPage('sangkien',this)">
+        <i class="fas fa-list"></i> Sáng kiến
+      </div>
+      <div class="sb-section">Hệ thống</div>
+      <div class="sb-item" onclick="showPage('settings',this)">
+        <i class="fas fa-cog"></i> Cài đặt
+      </div>
+    </div>
+    <div class="sb-footer">
+      <div class="sb-logout" onclick="doLogout()">
+        <i class="fas fa-sign-out-alt"></i> Đăng xuất
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h2 id="page-title">Tổng quan</h2>
+      <div class="topbar-right">
+        <button class="topbar-link" onclick="openLibrary()">
+          <i class="fas fa-home"></i> Mở thư viện
+        </button>
+        <div class="topbar-badge">
+          <i class="fas fa-circle" style="color:#3a7a3a;font-size:8px"></i> ONLINE
+        </div>
+      </div>
+    </div>
+
+    <!-- TỔNG QUAN -->
+    <div id="page-dashboard" class="admin-page active">
+      <div class="dash-stats">
+        <div class="dash-stat">
+          <div class="ds-icon"><i class="fas fa-layer-group"></i></div>
+          <div><div class="ds-num" id="stat-total">0</div><div class="ds-lbl">Tổng sáng kiến</div></div>
+        </div>
+        <div class="dash-stat">
+          <div class="ds-icon"><i class="fas fa-shield-alt"></i></div>
+          <div><div class="ds-num" id="stat-tm">0</div><div class="ds-lbl">Tham mưu</div></div>
+        </div>
+        <div class="dash-stat">
+          <div class="ds-icon"><i class="fas fa-flag"></i></div>
+          <div><div class="ds-num" id="stat-ct">0</div><div class="ds-lbl">Chính trị</div></div>
+        </div>
+        <div class="dash-stat">
+          <div class="ds-icon"><i class="fas fa-wrench"></i></div>
+          <div><div class="ds-num" id="stat-hk">0</div><div class="ds-lbl">Hậu cần - Kỹ thuật</div></div>
+        </div>
+      </div>
+      <div class="section-hd">
+        <h3><i class="fas fa-clock" style="color:var(--gold);margin-right:8px"></i>Sáng kiến mới nhất</h3>
+      </div>
+      <table class="mil-table">
+        <thead>
+          <tr><th>Tên sáng kiến</th><th>Loại</th><th>Lĩnh vực</th><th>Ngày áp dụng</th></tr>
+        </thead>
+        <tbody id="recent-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- QUẢN LÝ SÁNG KIẾN -->
+    <div id="page-sangkien" class="admin-page">
+      <div class="search-bar">
+        <input class="search-input" id="search-inp"
+               placeholder="Tìm kiếm sáng kiến..." oninput="filterTable()"/>
+        <select class="filter-select" id="filter-linh-vuc" onchange="filterTable()">
+          <option value="">Tất cả lĩnh vực</option>
+          <option value="thammu">Tham mưu</option>
+          <option value="chinhri">Chính trị</option>
+          <option value="hckt">Hậu cần - Kỹ thuật</option>
+        </select>
+        <button class="btn-add" onclick="openForm()">
+          <i class="fas fa-plus"></i> Thêm mới
+        </button>
+      </div>
+      <table class="mil-table">
+        <thead>
+          <tr><th>#</th><th>Tên sáng kiến</th><th>Loại</th><th>Lĩnh vực</th><th>Đơn vị</th><th>Ngày</th><th>Thao tác</th></tr>
+        </thead>
+        <tbody id="sk-tbody"></tbody>
+      </table>
+      <div class="table-pager" id="sk-pager"></div>
+    </div>
+
+    <!-- CÀI ĐẶT -->
+    <div id="page-settings" class="admin-page">
+      <div style="max-width:400px">
+        <div class="section-hd" style="margin-bottom:20px">
+          <h3><i class="fas fa-key" style="color:var(--gold);margin-right:8px"></i>Đổi mật khẩu admin</h3>
+        </div>
+        <div class="form-row">
+          <label>Mật khẩu cũ</label>
+          <input type="password" id="old-pw" placeholder="Nhập mật khẩu hiện tại"/>
+        </div>
+        <div class="form-row">
+          <label>Mật khẩu mới</label>
+          <input type="password" id="new-pw" placeholder="Nhập mật khẩu mới"/>
+        </div>
+        <div class="form-row">
+          <label>Xác nhận mật khẩu mới</label>
+          <input type="password" id="confirm-pw" placeholder="Nhập lại mật khẩu mới"/>
+        </div>
+        <button class="btn-save" onclick="changePassword()" style="margin-top:8px">
+          <i class="fas fa-save"></i> Lưu mật khẩu
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL THÊM / SỬA SÁNG KIẾN
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Thêm sáng kiến</h2>
+      <button class="modal-close" onclick="closeForm()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <input type="hidden" id="form-id"/>
+
+      <!-- ── Thông tin cơ bản ── -->
+      <div class="form-section-title">
+        <i class="fas fa-info-circle"></i> Thông tin cơ bản
+      </div>
+      <div class="form-grid">
+        <div class="form-row" style="grid-column:1/-1">
+          <label>Tên sáng kiến *</label>
+          <input type="text" id="form-ten" placeholder="Nhập tên sáng kiến"/>
+        </div>
+        <div class="form-row">
+          <label>Loại *</label>
+          <select id="form-loai">
+            <option value="MÔ PHỎNG 3D">Mô phỏng 3D</option>
+            <option value="PHẦN MỀM">Phần mềm</option>
+            <option value="THIẾT BỊ">Thiết bị</option>
+            <option value="MÔ HÌNH">Mô hình</option>
+            <option value="GIÁO ÁN ĐIỆN TỬ">Giáo án điện tử</option>
+            <option value="THIẾT BỊ & PHẦN MỀM">Thiết bị & Phần mềm</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Lĩnh vực *</label>
+          <select id="form-linh-vuc">
+            <option value="thammu">Tham mưu</option>
+            <option value="chinhri">Chính trị</option>
+            <option value="hckt">Hậu cần - Kỹ thuật</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Đơn vị</label>
+          <input type="text" id="form-don-vi" placeholder="VD: Lữ đoàn 279/BCCB"/>
+        </div>
+        <div class="form-row">
+          <label>Ngày áp dụng</label>
+          <input type="text" id="form-ngay" placeholder="VD: 4/2025"/>
+        </div>
+        <div class="form-row" style="grid-column:1/-1">
+          <label>Mô tả ngắn</label>
+          <textarea id="form-mo-ta" placeholder="Mô tả ngắn về sáng kiến (tuỳ chọn)"></textarea>
+        </div>
+      </div>
+
+      <!-- ── Video & QR ── -->
+      <div class="form-section-title">
+        <i class="fas fa-play-circle"></i> Video & QR Code
+      </div>
+      <div class="form-grid">
+        <div class="form-row" style="grid-column:1/-1">
+          <label>Liên kết video (YouTube hoặc file .mp4)</label>
+          <div class="input-with-btn">
+            <input type="text" id="form-link-video"
+                   placeholder="VD: https://youtube.com/watch?v=... hoặc đường dẫn file .mp4"/>
+            <button class="btn-input-action" type="button"
+                    onclick="browseFile('form-link-video','.mp4,.avi,.mkv,.mov')">
+              <i class="fas fa-folder-open"></i>
+            </button>
+            <button class="btn-input-action btn-preview" type="button"
+                    onclick="openVideoModal(document.getElementById('form-link-video').value)">
+              <i class="fas fa-play"></i>
+            </button>
+          </div>
+          <div class="field-hint">Hỗ trợ: YouTube, file .mp4, .avi, .mkv</div>
+        </div>
+        <div class="form-row" style="grid-column:1/-1">
+          <label>Nội dung mã QR (URL hoặc văn bản)</label>
+          <input type="text" id="form-qr" placeholder="VD: https://... hoặc mã tra cứu"/>
+        </div>
+      </div>
+
+      <!-- ── Hồ sơ đính kèm ── -->
+      <div class="form-section-title">
+        <i class="fas fa-folder-open"></i> Hồ sơ đính kèm
+      </div>
+
+      <div class="file-fields">
+
+        <div class="file-field-row">
+          <div class="file-field-icon pdf"><i class="fas fa-file-pdf"></i></div>
+          <div class="file-field-info">
+            <div class="file-field-label">Thuyết minh sáng kiến</div>
+            <div class="file-field-hint">PDF · Nội dung chi tiết sáng kiến</div>
+          </div>
+          <div class="file-field-input">
+            <input type="text" id="form-file-thuyet-minh"
+                   placeholder="Đường dẫn file hoặc URL..."/>
+            <button class="btn-browse" type="button"
+                    onclick="browseFile('form-file-thuyet-minh','.pdf')">
+              <i class="fas fa-folder-open"></i> Chọn
+            </button>
+          </div>
+        </div>
+
+        <div class="file-field-row">
+          <div class="file-field-icon doc"><i class="fas fa-gavel"></i></div>
+          <div class="file-field-info">
+            <div class="file-field-label">Quyết định / Biên bản nghiệm thu</div>
+            <div class="file-field-hint">PDF · Văn bản pháp lý, quyết định công nhận</div>
+          </div>
+          <div class="file-field-input">
+            <input type="text" id="form-file-quyet-dinh"
+                   placeholder="Đường dẫn file hoặc URL..."/>
+            <button class="btn-browse" type="button"
+                    onclick="browseFile('form-file-quyet-dinh','.pdf,.doc,.docx')">
+              <i class="fas fa-folder-open"></i> Chọn
+            </button>
+          </div>
+        </div>
+
+        <div class="file-field-row">
+          <div class="file-field-icon img"><i class="fas fa-images"></i></div>
+          <div class="file-field-info">
+            <div class="file-field-label">Ảnh trước – sau / Hiện trạng</div>
+            <div class="file-field-hint">JPG, PNG · Ảnh minh chứng kết quả</div>
+          </div>
+          <div class="file-field-input">
+            <input type="text" id="form-file-anh"
+                   placeholder="Đường dẫn file hoặc URL..."/>
+            <button class="btn-browse" type="button"
+                    onclick="browseFile('form-file-anh','.jpg,.jpeg,.png,.gif,.webp')">
+              <i class="fas fa-folder-open"></i> Chọn
+            </button>
+          </div>
+        </div>
+
+        <div class="file-field-row">
+          <div class="file-field-icon draw"><i class="fas fa-drafting-compass"></i></div>
+          <div class="file-field-info">
+            <div class="file-field-label">Bản vẽ / Sơ đồ</div>
+            <div class="file-field-hint">PDF, CAD · Tài liệu kỹ thuật</div>
+          </div>
+          <div class="file-field-input">
+            <input type="text" id="form-file-ban-ve"
+                   placeholder="Đường dẫn file hoặc URL..."/>
+            <button class="btn-browse" type="button"
+                    onclick="browseFile('form-file-ban-ve','.pdf,.dwg,.png,.jpg')">
+              <i class="fas fa-folder-open"></i> Chọn
+            </button>
+          </div>
+        </div>
+
+        <div class="file-field-row">
+          <div class="file-field-icon chart"><i class="fas fa-chart-bar"></i></div>
+          <div class="file-field-info">
+            <div class="file-field-label">Hiệu quả: Số liệu / Chi phí / Thời gian</div>
+            <div class="file-field-hint">PDF, Excel · Báo cáo kết quả, số liệu thực tế</div>
+          </div>
+          <div class="file-field-input">
+            <input type="text" id="form-file-hieu-qua"
+                   placeholder="Đường dẫn file hoặc URL..."/>
+            <button class="btn-browse" type="button"
+                    onclick="browseFile('form-file-hieu-qua','.pdf,.xlsx,.xls,.csv')">
+              <i class="fas fa-folder-open"></i> Chọn
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /.file-fields -->
+
+      <!-- ── Tác giả ── -->
+      <div class="form-section-title">
+        <i class="fas fa-users"></i> Danh sách tác giả
+      </div>
+      <div class="authors-section">
+        <div class="author-row" style="margin-bottom:4px">
+          <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--gold-d)">CẤP BẬC</span>
+          <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--gold-d)">HỌ VÀ TÊN</span>
+          <span style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--gold-d)">CHỨC VỤ</span>
+          <span></span>
+        </div>
+        <div id="authors-list"></div>
+        <button class="btn-add-author" onclick="addAuthorRow()">
+          <i class="fas fa-plus"></i> Thêm tác giả
+        </button>
+      </div>
+
+    </div><!-- /.modal-body -->
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeForm()">Hủy</button>
+      <button class="btn-save"   onclick="saveSangKien()">
+        <i class="fas fa-save"></i> Lưu
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VIDEO PLAYER MODAL  ← MỚI
+══════════════════════════════════════ -->
+<div class="video-modal-overlay" id="video-modal-overlay" onclick="closeVideoModal()">
+  <div class="video-modal" onclick="event.stopPropagation()">
+    <button class="video-modal-close" onclick="closeVideoModal()">
+      <i class="fas fa-times"></i>
+    </button>
+    <div class="video-container" id="video-container"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="../mock_data.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
