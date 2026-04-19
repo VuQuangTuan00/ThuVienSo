@@ -26,14 +26,15 @@ function getMockDb() {
 }
 
 function adminMockCall(channel, ...args) {
+  const admin = "admin279";
   const db = getMockDb();
   switch (channel) {
     case 'admin:login':
       // Mật khẩu mặc định khi test browser
-      return { ok: args[0] === 'admin279' };
+      return { ok: args[0] === admin };
 
     case 'admin:changePassword':
-      return { ok: args[0].oldPw === 'admin279' ? true : false,
+      return { ok: args[0].oldPw === admin ? true : false,
                error: 'Mật khẩu cũ không đúng' };
 
     case 'stats:get':
@@ -244,12 +245,19 @@ function gotoPage(page) {
 }
 
 function filterTable() {
-  const q  = document.getElementById('search-inp').value.toLowerCase();
+  const q  = document.getElementById('search-inp').value.toLowerCase().trim();
   const lv = document.getElementById('filter-linh-vuc').value;
-  filteredData = allData.filter(r =>
-    (!lv || r.linh_vuc === lv) &&
-    (!q  || r.ten.toLowerCase().includes(q) || r.don_vi.toLowerCase().includes(q))
-  );
+
+  // Dùng DataUtils nếu có (load từ lib/data_utils.js)
+  if (window.DataUtils) {
+    filteredData = window.DataUtils.filterData(allData, { query: q, linhVuc: lv });
+  } else {
+    // Fallback
+    filteredData = allData.filter(r =>
+      (!lv || r.linh_vuc === lv) &&
+      (!q  || r.ten.toLowerCase().includes(q) || r.don_vi.toLowerCase().includes(q))
+    );
+  }
   currentPage = 1;
   renderTable();
 }

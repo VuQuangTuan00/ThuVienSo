@@ -1035,3 +1035,544 @@ body {
   font-size: 13px;
   color: var(--dim);
 }
+
+/* ═══════════════════════════════════════
+   SEARCH OVERLAY
+═══════════════════════════════════════ */
+.search-bar-home {
+  display: flex; align-items: center;
+  background: rgba(255,255,255,.9);
+  border: 1px solid rgba(104,178,160,.35);
+  border-radius: 10px;
+  padding: 0 12px;
+  gap: 8px;
+  min-width: 260px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.search-bar-home:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(44,105,117,.10);
+}
+.search-icon-home { color: var(--dim); font-size: 13px; }
+.search-bar-home input {
+  border: none; background: transparent;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px; color: var(--cream);
+  padding: 10px 0; outline: none; flex: 1;
+}
+.search-bar-home input::placeholder { color: var(--dim); }
+.search-clear {
+  background: none; border: none; cursor: pointer;
+  color: var(--dim); font-size: 12px;
+  display: none; align-items: center;
+  padding: 4px; border-radius: 50%;
+  transition: color .2s;
+}
+.search-clear:hover { color: var(--cream); }
+
+.search-overlay {
+  display: none;
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  background: rgba(255,255,255,.98);
+  border-top: 1px solid rgba(104,178,160,.2);
+  border-bottom: 2px solid rgba(44,105,117,.15);
+  box-shadow: 0 12px 32px rgba(44,105,117,.14);
+  z-index: 200;
+  max-height: 70vh;
+  overflow-y: auto;
+  backdrop-filter: blur(8px);
+}
+.search-overlay.open { display: block; }
+
+.search-overlay-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  border-bottom: 1px solid rgba(104,178,160,.14);
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 2px; color: var(--dim);
+  text-transform: uppercase;
+  position: sticky; top: 0;
+  background: rgba(255,255,255,.97);
+}
+.search-overlay-header button {
+  background: none; border: 1px solid rgba(104,178,160,.25);
+  color: var(--dim); font-size: 11px; cursor: pointer;
+  padding: 4px 10px; border-radius: 6px;
+  font-family: var(--mono); letter-spacing: 1px;
+  transition: all .2s;
+}
+.search-overlay-header button:hover { color: var(--gold); border-color: var(--gold); }
+
+.search-results-list { padding: 8px 16px 16px; }
+
+.search-result-item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(104,178,160,.12);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all .2s;
+  background: rgba(255,255,255,.7);
+}
+.search-result-item:hover {
+  border-color: var(--gold);
+  background: var(--teal-10);
+  transform: translateX(4px);
+}
+.sri-type {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 3px; color: var(--gold-d);
+  text-transform: uppercase;
+}
+.sri-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 15px; font-weight: 600;
+  color: var(--cream);
+}
+.sri-meta {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: 11px; color: var(--dim);
+}
+.sri-meta span { display: flex; align-items: center; gap: 4px; }
+.sri-meta i { color: var(--gold-l); font-size: 10px; }
+
+.search-empty {
+  text-align: center; padding: 40px 20px;
+  color: var(--dim);
+}
+.search-empty i { font-size: 36px; color: var(--g4); display: block; margin-bottom: 10px; }
+.search-empty p { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; }
+
+/* top-bar cần position:relative để overlay định vị */
+.top-bar { position: relative; }
+
+/* ═══════════════════════════════════════
+   TAB: SO SÁNH THEO NĂM
+═══════════════════════════════════════ */
+.compare-view { display: flex; flex-direction: column; gap: 20px; }
+
+.compare-header {
+  display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.compare-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 20px; letter-spacing: 2px;
+  color: var(--cream); display: flex; align-items: center; gap: 10px;
+}
+.compare-filters select {
+  font-family: 'Oswald', sans-serif; font-size: 13px;
+  letter-spacing: 1px; color: var(--cream);
+  background: rgba(255,255,255,.9);
+  border: 1px solid rgba(104,178,160,.35);
+  border-radius: 8px; padding: 8px 12px;
+  cursor: pointer; outline: none;
+  transition: border-color .2s;
+}
+.compare-filters select:focus { border-color: var(--gold); }
+
+.compare-chart-card {
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(224,236,222,.9));
+  border: 1px solid rgba(104,178,160,.2);
+  border-radius: 18px;
+  padding: 20px 20px 12px;
+  box-shadow: 0 12px 32px rgba(44,105,117,.10);
+}
+.compare-chart-card canvas {
+  display: block; width: 100%;
+}
+
+.compare-year-summary {
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+.cmp-year-card {
+  background: rgba(255,255,255,.9);
+  border: 1px solid rgba(104,178,160,.2);
+  border-radius: 14px;
+  padding: 16px 22px;
+  text-align: center;
+  min-width: 120px;
+  flex: 1;
+  box-shadow: 0 4px 14px rgba(44,105,117,.08);
+  transition: transform .2s, box-shadow .2s;
+}
+.cmp-year-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(44,105,117,.14);
+}
+.cmp-year-label {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 3px; color: var(--dim);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.cmp-year-total {
+  font-family: 'Oswald', sans-serif;
+  font-size: 38px; font-weight: 700;
+  color: var(--gold); line-height: 1;
+}
+.cmp-year-breakdown {
+  display: flex; gap: 10px; justify-content: center;
+  margin-top: 8px; font-family: var(--mono);
+  font-size: 11px; letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════
+   TAB: VINH DANH TÁC GIẢ
+═══════════════════════════════════════ */
+.honor-view { display: flex; flex-direction: column; gap: 20px; }
+
+.honor-header {
+  font-family: 'Oswald', sans-serif;
+  font-size: 20px; letter-spacing: 2px;
+  color: var(--cream);
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(104,178,160,.2);
+}
+
+.honor-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, .7fr);
+  gap: 20px; align-items: start;
+}
+
+.honor-table-wrap {
+  background: rgba(255,255,255,.96);
+  border: 1px solid rgba(104,178,160,.18);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(44,105,117,.08);
+}
+
+.rank-table {
+  width: 100%; border-collapse: collapse;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+.rank-table thead tr {
+  background: linear-gradient(135deg, rgba(44,105,117,.08), rgba(104,178,160,.06));
+  border-bottom: 2px solid rgba(104,178,160,.2);
+}
+.rank-table th {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--dim); padding: 12px 16px;
+  text-align: left; font-weight: 400;
+}
+.rank-table td { padding: 11px 16px; font-size: 13px; color: var(--cream); }
+.rank-row { border-bottom: 1px solid rgba(104,178,160,.1); transition: background .15s; }
+.rank-row:hover { background: var(--teal-10); }
+.rank-row.rank-top { background: linear-gradient(to right, rgba(200,160,32,.05), transparent); }
+.rank-row.rank-top:hover { background: linear-gradient(to right, rgba(200,160,32,.10), var(--teal-10)); }
+
+.rank-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 28px;
+  border-radius: 8px;
+  font-family: 'Oswald', sans-serif; font-size: 12px;
+  background: rgba(104,178,160,.12);
+  color: var(--gold-d);
+  font-weight: 700;
+}
+.rank-badge.rank-1, .rank-badge.rank-2, .rank-badge.rank-3 {
+  background: none; font-size: 20px;
+}
+
+.rank-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 15px; font-weight: 600; color: var(--cream);
+}
+.rank-meta {
+  font-size: 11px; color: var(--dim);
+  font-family: var(--mono); letter-spacing: .5px;
+}
+.rank-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 34px; height: 28px;
+  background: var(--gold); color: #fff;
+  border-radius: 8px;
+  font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 700;
+}
+
+.honor-chart-wrap {
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(224,236,222,.9));
+  border: 1px solid rgba(104,178,160,.2);
+  border-radius: 18px; padding: 20px 16px;
+  box-shadow: 0 8px 24px rgba(44,105,117,.08);
+  position: sticky; top: 20px;
+}
+.honor-chart-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px; letter-spacing: 2px;
+  color: var(--gold-d); text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.honor-chart-wrap canvas { display: block; width: 100%; }
+
+@media (max-width: 900px) {
+  .honor-body { grid-template-columns: 1fr; }
+  .compare-year-summary { flex-direction: column; }
+}
+
+
+/* ══════════════════════════════════════════
+   SEARCH — Improved (v3)
+══════════════════════════════════════════ */
+
+/* Highlight từ khóa */
+mark.search-hl {
+  background: rgba(44,105,117,0.18);
+  color: #1a3a42;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 700;
+}
+
+.sri-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 4px;
+}
+
+.search-match-badge {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 2px; text-transform: uppercase;
+  background: rgba(44,105,117,0.12);
+  color: var(--dark); border: 1px solid rgba(44,105,117,0.2);
+  border-radius: 3px; padding: 1px 6px;
+}
+
+.search-result-item {
+  padding: 13px 16px;
+  border: 1px solid rgba(44,105,117,0.1);
+  border-radius: 8px; margin-bottom: 8px;
+  cursor: pointer; transition: all .2s;
+  background: #fff;
+}
+.search-result-item:hover {
+  border-color: var(--dark);
+  background: var(--teal-10);
+  transform: translateX(3px);
+  box-shadow: 0 3px 12px rgba(44,105,117,0.1);
+}
+
+.sri-type {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--gold-d);
+}
+.sri-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px; font-weight: 700;
+  color: var(--cream); margin: 3px 0 6px;
+  line-height: 1.3;
+}
+.sri-meta {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  font-size: 12px; color: var(--dim);
+}
+.sri-meta span { display:flex; align-items:center; gap:4px; }
+.sri-meta i { color: var(--gold-d); }
+
+.search-empty {
+  text-align: center; padding: 40px 20px; color: var(--dim);
+}
+.search-empty i { font-size: 36px; display:block; margin-bottom:10px; opacity:.35; }
+.search-empty p { font-family:'Oswald',sans-serif; font-size:13px; letter-spacing:2px; }
+
+/* ══════════════════════════════════════════
+   HONOR — Improved (v3)
+══════════════════════════════════════════ */
+
+.honor-view { padding: 4px 0; }
+
+/* Header */
+.honor-header {
+  display: flex; align-items: center; gap: 18px;
+  padding: 20px 24px 18px;
+  background: linear-gradient(135deg, rgba(44,105,117,0.06) 0%, rgba(104,178,160,0.06) 100%);
+  border: 1px solid rgba(44,105,117,0.12);
+  border-radius: 10px; margin-bottom: 24px;
+}
+.honor-header-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, #2c6975, #68b2a0);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 22px; flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(44,105,117,0.3);
+}
+.honor-header-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 22px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--cream); line-height: 1.2;
+}
+.honor-header-sub {
+  font-size: 13px; color: var(--dim);
+  letter-spacing: 1px; margin-top: 3px;
+}
+
+/* Podium */
+.honor-podium {
+  display: flex; gap: 16px; justify-content: center;
+  margin-bottom: 28px; flex-wrap: wrap;
+}
+.honor-podium-card {
+  background: #fff;
+  border: 2px solid rgba(44,105,117,0.15);
+  border-radius: 14px; padding: 22px 18px;
+  text-align: center; min-width: 160px; max-width: 200px;
+  flex: 1; transition: all .25s;
+  position: relative; overflow: hidden;
+}
+.honor-podium-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+}
+.honor-podium-rank-1 { border-color: #c8a020; }
+.honor-podium-rank-1::before { background: linear-gradient(90deg, #c8a020, #ffe08a); }
+.honor-podium-rank-2 { border-color: #9e9e9e; }
+.honor-podium-rank-2::before { background: linear-gradient(90deg, #9e9e9e, #d0d0d0); }
+.honor-podium-rank-3 { border-color: #cd7f32; }
+.honor-podium-rank-3::before { background: linear-gradient(90deg, #cd7f32, #e8a870); }
+.honor-podium-card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(44,105,117,0.15); }
+
+.honor-podium-medal { font-size: 34px; margin-bottom: 10px; }
+.honor-podium-avatar {
+  width: 60px; height: 60px; border-radius: 50%;
+  border: 3px solid; margin: 0 auto 10px;
+  background: var(--teal-10);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--dark); font-size: 22px;
+}
+.honor-podium-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 17px; font-weight: 700;
+  color: var(--cream); margin-bottom: 4px; line-height: 1.2;
+}
+.honor-podium-rank {
+  font-size: 12px; color: var(--dim); margin-bottom: 12px;
+}
+.honor-podium-count {
+  font-family: 'Oswald', sans-serif;
+  font-size: 32px; font-weight: 900; line-height: 1;
+}
+.honor-podium-count-lbl {
+  font-size: 12px; color: var(--dim); font-weight: 400;
+  display: block; margin-top: 3px;
+}
+
+/* Rank table */
+.honor-body {
+  display: flex; gap: 20px; flex-wrap: wrap;
+}
+.honor-table-wrap { flex: 1; min-width: 280px; overflow-x: auto; }
+
+.rank-table { width: 100%; border-collapse: collapse; }
+
+.rank-table thead th {
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--gold);
+  padding: 12px 14px; text-align: left;
+  background: var(--g2);
+  border-bottom: 2px solid rgba(44,105,117,0.2);
+}
+.rank-th-pos   { width: 56px; text-align: center; }
+.rank-th-count { width: 120px; }
+
+.rank-row td {
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(44,105,117,0.07);
+  vertical-align: middle;
+}
+.rank-row:hover td { background: rgba(44,105,117,0.04); }
+
+/* Top 3 rows — nổi bật hơn */
+.rank-row.rank-top { background: rgba(200,160,32,0.03); }
+.rank-row.rank-top td { border-bottom-color: rgba(200,160,32,0.12); }
+
+.rank-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px; font-weight: 700;
+  border-radius: 50%; margin: 0 auto;
+}
+.rank-badge.rank-1 { background: rgba(200,160,32,0.15); font-size: 20px; }
+.rank-badge.rank-2 { background: rgba(158,158,158,0.15); font-size: 20px; }
+.rank-badge.rank-3 { background: rgba(205,127,50,0.15);  font-size: 20px; }
+.rank-badge.rank-4 {
+  background: var(--teal-10); color: var(--dark);
+  border: 1px solid rgba(44,105,117,0.2);
+}
+
+/* Tên tác giả — lớn, đậm, dễ đọc */
+.rank-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px; font-weight: 700;
+  color: var(--cream);
+}
+.rank-top .rank-name {
+  font-size: 17px; color: #1a3a42;
+}
+
+/* Cấp bậc / chức vụ */
+.rank-meta {
+  font-size: 13px; color: var(--dim); letter-spacing: 0.3px;
+}
+.rank-top .rank-meta { font-size: 13px; }
+
+/* Số sáng kiến + mini bar */
+.rank-count {
+  font-family: 'Oswald', sans-serif;
+  font-size: 20px; font-weight: 900;
+  color: var(--dark); display: inline-block;
+  min-width: 28px;
+}
+.rank-top .rank-count { font-size: 22px; color: #1a3a42; }
+
+.rank-count-bar {
+  display: inline-block;
+  height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, #2c6975, #68b2a0);
+  vertical-align: middle; margin-left: 8px;
+  opacity: 0.5; transition: opacity .2s;
+}
+.rank-row:hover .rank-count-bar { opacity: 0.9; }
+
+/* Chart bên phải */
+.honor-chart-wrap { flex: 0 0 320px; }
+.honor-chart-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--mid);
+  margin-bottom: 10px;
+}
+
+/* ══════════════════════════════════════════
+   COMPARE — Year legend + card
+══════════════════════════════════════════ */
+.cmp-year-card {
+  background: #fff;
+  border: 1px solid rgba(44,105,117,0.12);
+  border-radius: 8px; padding: 14px 18px;
+  text-align: center; min-width: 100px;
+  flex: 1; transition: all .2s;
+}
+.cmp-year-card:hover { border-color: var(--dark); box-shadow: 0 4px 14px rgba(44,105,117,0.12); }
+.cmp-year-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px; font-weight: 700;
+  color: var(--dark); margin-bottom: 4px;
+}
+.cmp-year-total {
+  font-family: 'Oswald', sans-serif;
+  font-size: 28px; font-weight: 900; color: #1a3a42;
+}
+.cmp-year-breakdown {
+  font-size: 12px; margin-top: 6px;
+  display: flex; gap: 6px; justify-content: center;
+  flex-wrap: wrap;
+}

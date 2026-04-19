@@ -167,18 +167,15 @@ function renderItems(tab) {
   const container = document.getElementById('home-content');
 
   if (tab === 'all') {
-    // ── Tab "Tất cả" → Biểu đồ tổng quan ──
     container.innerHTML = `
       <div class="charts-wrap">
-        <!-- Biểu đồ cột: tổng sáng kiến từng lĩnh vực -->
         <div class="chart-card">
           <div class="chart-title">
             <i class="fas fa-chart-bar" style="color:var(--gold)"></i>
             Tổng sáng kiến theo lĩnh vực
-          </div>  
+          </div>
           <canvas id="chart-bar" height="200"></canvas>
         </div>
-        <!-- Biểu đồ tròn: phân loại theo loại hình -->
         <div class="chart-card">
           <div class="chart-title">
             <i class="fas fa-chart-pie" style="color:var(--gold)"></i>
@@ -189,11 +186,14 @@ function renderItems(tab) {
             <div id="pie-legend" class="pie-legend"></div>
           </div>
         </div>
-      </div>
-      `;
-
-    // Vẽ biểu đồ sau khi DOM sẵn sàng
+      </div>`;
     requestAnimationFrame(() => buildCharts());
+
+  } else if (tab === 'compare') {
+    renderCompareView();
+
+  } else if (tab === 'honor') {
+    renderHonorView();
 
   } else {
     const items = allData.filter(d => d.linh_vuc === tab);
@@ -230,9 +230,9 @@ const LOAI_COLORS = [
 
 // ── Biểu đồ cột: Tổng sáng kiến / lĩnh vực ──
 const CHART_COLORS_TEAL = {
-  thammu:  { top:'#2c6975', bot:'rgba(44,105,117,0.6)',  label:'#2c6975' },
-  chinhri: { top:'#68b2a0', bot:'rgba(104,178,160,0.55)', label:'#4b8f8d' },
-  hckt:    { top:'#4b8f8d', bot:'rgba(75,143,141,0.55)', label:'#1e5460' },
+  thammu:  { top:'#c05050', bot:'rgba(130, 14, 14,0.6)',  label:'#2c6975' },
+  chinhri: { top:'#c8a020', bot:'rgba(110, 85, 7,0.55)', label:'#4b8f8d' },
+  hckt:    { top:'#3ca050', bot:'rgba(19, 74, 30,0.55)', label:'#1e5460' },
 };
 
 function buildBarChart() {
@@ -934,6 +934,577 @@ function parseAuthors(authors) {
   if (!authors) return [];
   if (Array.isArray(authors)) return authors;
   try { return JSON.parse(authors); } catch { return []; }
+}
+
+// ══════════════════════════════════════
+//  SEARCH
+// ══════════════════════════════════════
+
+// ══════════════════════════════════════
+//  SEARCH ENGINE — dùng chung renderer + admin
+// ══════════════════════════════════════
+
+/**
+ * searchData(data, query)
+ * Tìm kiếm không phân biệt hoa/thường.
+ * Hỗ trợ: tên sáng kiến · đơn vị · năm · loại · tác giả
+ * Trả về mảng kết quả có thêm field _matchField để biết match ở đâu.
+ */
+function searchData(data, query) {
+  if (!query || !query.trim()) return [];
+  const q = query.trim().toLowerCase();
+
+  return data
+    .map(item => {
+      const fields = {
+        ten:    (item.ten || '').toLowerCase(),
+        don_vi: (item.don_vi || '').toLowerCase(),
+        nam:    String(item.nam || item.ngay_ap_dung || '').toLowerCase(),
+        loai:   (item.loai || '').toLowerCase(),
+        mo_ta:  (item.mo_ta || '').toLowerCase(),
+        authors: parseAuthors(item.authors)
+                   .map(a => `${a.ho_ten} ${a.cap_bac} ${a.chuc_vu}`.toLowerCase())
+                   .join(' '),
+      };
+
+      // Ưu tiên: tên > đơn vị > năm > loại > mô tả > tác giả
+      let score = 0;
+      let matchField = '';
+
+      if (fields.ten.includes(q))      { score = 100; matchField = 'ten'; }
+      else if (fields.don_vi.includes(q)) { score = 80; matchField = 'don_vi'; }
+      else if (fields.nam.includes(q))    { score = 70; matchField = 'nam'; }
+      else if (fields.loai.includes(q))   { score = 60; matchField = 'loai'; }
+      else if (fields.mo_ta.includes(q))  { score = 40; matchField = 'mo_ta'; }
+      else if (fields.authors.includes(q)){ score = 50; matchField = 'authors'; }
+
+      return score > 0 ? { ...item, _score: score, _matchField: matchField } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b._score - a._score);
+}
+
+/** Highlight từ khóa trong text (safe HTML) */
+function highlightKeyword(text, query) {
+  if (!text || !query) return escapeHtml(text || '');
+  const safe  = escapeHtml(text);
+  const safeQ = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return safe.replace(
+    new RegExp(`(${safeQ})`, 'gi'),
+    '<mark class="search-hl">$1</mark>'
+  );
+}
+
+// Debounce timer
+let _searchTimer = null;
+
+function onHomeSearch(value) {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => _execSearch(value), 180);
+}
+
+function _execSearch(value) {
+  const q        = (value || '').trim();
+  const overlay  = document.getElementById('search-overlay');
+  const list     = document.getElementById('search-results-list');
+  const countEl  = document.getElementById('search-result-count');
+  const clearBtn = document.getElementById('search-clear-btn');
+
+  if (!overlay || !list) return;
+
+  if (!q) {
+    overlay.classList.remove('open');
+    if (clearBtn) clearBtn.style.display = 'none';
+    return;
+  }
+
+  if (clearBtn) clearBtn.style.display = 'flex';
+
+  const results = searchData(allData, q);
+
+  countEl.innerHTML = results.length
+    ? `<i class="fas fa-search"></i> Tìm thấy <strong>${results.length}</strong> kết quả cho "<em>${escapeHtml(q)}</em>"`
+    : `<i class="fas fa-search"></i> Không có kết quả cho "<em>${escapeHtml(q)}</em>"`;
+
+  const MATCH_LABEL = {
+    ten: '', don_vi: 'Đơn vị', nam: 'Năm',
+    loai: 'Loại', mo_ta: 'Mô tả', authors: 'Tác giả',
+  };
+
+  list.innerHTML = results.length
+    ? results.map(item => {
+        const authors    = parseAuthors(item.authors);
+        const authorStr  = authors.slice(0,3).map(a => a.ho_ten).join(', ');
+        const fieldLabel = TAB_LABELS[item.linh_vuc] || item.linh_vuc;
+        const matchBadge = item._matchField && MATCH_LABEL[item._matchField]
+          ? `<span class="search-match-badge">${MATCH_LABEL[item._matchField]}</span>` : '';
+
+        return `
+          <div class="search-result-item" onclick="openDetail(${item.id})">
+            <div class="sri-header">
+              <span class="sri-type">${escapeHtml(item.loai || '')}</span>
+              ${matchBadge}
+            </div>
+            <div class="sri-name">${highlightKeyword(item.ten, q)}</div>
+            <div class="sri-meta">
+              <span><i class="fas fa-layer-group"></i> ${escapeHtml(fieldLabel)}</span>
+              <span><i class="fas fa-building"></i> ${escapeHtml((item.don_vi||'').split('/')[0])}</span>
+              ${item.ngay_ap_dung ? `<span><i class="fas fa-calendar"></i> ${escapeHtml(String(item.ngay_ap_dung))}</span>` : ''}
+              ${authorStr ? `<span><i class="fas fa-users"></i> ${escapeHtml(authorStr)}</span>` : ''}
+            </div>
+          </div>`;
+      }).join('')
+    : `<div class="search-empty">
+         <i class="fas fa-box-open"></i>
+         <p>Thử tìm theo tên, đơn vị hoặc năm</p>
+       </div>`;
+
+  overlay.classList.add('open');
+}
+
+function clearSearch() {
+  const inp = document.getElementById('home-search');
+  if (inp) inp.value = '';
+  const overlay = document.getElementById('search-overlay');
+  if (overlay) overlay.classList.remove('open');
+  const clearBtn = document.getElementById('search-clear-btn');
+  if (clearBtn) clearBtn.style.display = 'none';
+}
+
+// Export để admin.js dùng lại
+window.searchData = searchData;
+window.highlightKeyword = highlightKeyword;
+
+// ══════════════════════════════════════
+//  TAB: SO SÁNH THEO NĂM
+// ══════════════════════════════════════
+
+function renderCompareView() {
+  const container = document.getElementById('home-content');
+  container.innerHTML = `
+    <div class="compare-view">
+      <div class="compare-header">
+        <div class="compare-title">
+          <i class="fas fa-chart-bar" style="color:var(--gold)"></i>
+          So sánh sáng kiến theo năm
+        </div>
+        <div class="compare-filters">
+          <select id="cmp-field-filter" onchange="rebuildCompareChart()">
+            <option value="">Tất cả lĩnh vực</option>
+            <option value="thammu">Tham mưu</option>
+            <option value="chinhri">Chính trị</option>
+            <option value="hckt">HC-KT</option>
+          </select>
+        </div>
+      </div>
+      <div class="compare-chart-card">
+        <canvas id="chart-compare" height="260"></canvas>
+      </div>
+      <div id="compare-year-summary" class="compare-year-summary"></div>
+    </div>`;
+  requestAnimationFrame(() => rebuildCompareChart());
+}
+
+function rebuildCompareChart() {
+  const lv = (document.getElementById('cmp-field-filter') || {}).value || '';
+  const utils = window.DataUtils;
+  if (!utils) return;
+
+  const source  = lv ? allData.filter(d => d.linh_vuc === lv) : allData;
+  const grouped = utils.groupByYearAndField(source);
+  const chart   = utils.toYearCompareChartData(grouped);
+  buildCompareChart(chart);
+  buildYearSummary(grouped);
+}
+
+function buildCompareChart({ labels, series, totals }) {
+  const canvas = document.getElementById('chart-compare');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.offsetWidth || 560;
+  const H   = 260;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+
+  const padL = 48, padR = 20, padT = 44, padB = 60;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  const nYears  = labels.length || 1;
+  const nSeries = series.length;
+  const groupW  = Math.floor(chartW / nYears);
+  const barW    = Math.max(16, Math.floor(groupW / (nSeries + 1) * 0.88));
+  const maxVal  = Math.max(...totals, 1);
+
+  // Màu riêng biệt cho từng năm — đủ sáng, dễ phân biệt
+  const YEAR_PALETTE = [
+    { solid:'#2c6975', light:'rgba(44,105,117,0.65)',  label:'#2c6975'  },
+    { solid:'#e07b39', light:'rgba(224,123,57,0.65)',  label:'#c9651e'  },
+    { solid:'#6a3d9a', light:'rgba(106,61,154,0.65)',  label:'#5a2d88'  },
+    { solid:'#2ca06e', light:'rgba(44,160,110,0.65)',  label:'#1d8058'  },
+    { solid:'#c8a020', light:'rgba(200,160,32,0.65)',  label:'#a07c10'  },
+    { solid:'#d04060', light:'rgba(208,64,96,0.65)',   label:'#b02040'  },
+  ];
+  // Override màu series bằng YEAR_PALETTE theo index năm
+  const yearColorMap = {};
+  labels.forEach((yr, i) => {
+    yearColorMap[yr] = YEAR_PALETTE[i % YEAR_PALETTE.length];
+  });
+
+  // Lưu vị trí bar để hit-test tooltip
+  const barRects = [];
+
+  function drawCompare(hoverKey) {
+    ctx.clearRect(0, 0, W, H);
+
+    // Grid
+    const steps = Math.min(maxVal, 5);
+    for (let i = 0; i <= steps; i++) {
+      const val = Math.round(maxVal / steps * i);
+      const y   = padT + chartH - (chartH / steps * i);
+      ctx.strokeStyle = 'rgba(44,105,117,0.12)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + chartW, y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#2c6975';
+      ctx.font = 'bold 10px Oswald,sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(val, padL - 6, y + 4);
+    }
+
+    // Bars
+    barRects.length = 0;
+    labels.forEach((yr, yi) => {
+      const groupX = padL + groupW * yi + (groupW - barW * nSeries) / 2;
+      series.forEach((s, si) => {
+        const val  = s.values[yi] || 0;
+        const barH = val === 0 ? 0 : Math.max(4, (val / maxVal) * chartH);
+        const x    = groupX + si * barW;
+        const y    = padT + chartH - barH;
+        const key  = `${yi}-${si}`;
+        const isHov = (hoverKey === key);
+
+        barRects.push({ x, y, w: barW - 2, h: barH, label: s.label, yr, val, key });
+
+        // Dùng màu theo năm thay vì màu series để mỗi năm rõ ràng hơn
+        const yrColor = yearColorMap[yr] || YEAR_PALETTE[yi % YEAR_PALETTE.length];
+        ctx.shadowColor   = isHov ? yrColor.solid : 'transparent';
+        ctx.shadowBlur    = isHov ? 14 : 0;
+        const grad = ctx.createLinearGradient(x, y, x, y + barH);
+        grad.addColorStop(0, isHov ? yrColor.solid : yrColor.light);
+        grad.addColorStop(1, isHov ? yrColor.light : 'rgba(0,0,0,0.06)');
+        ctx.fillStyle = grad;
+
+        const r = Math.min(4, (barW - 2) / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + barW - 2 - r, y);
+        ctx.quadraticCurveTo(x + barW - 2, y, x + barW - 2, y + r);
+        ctx.lineTo(x + barW - 2, y + barH);
+        ctx.lineTo(x, y + barH);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        if (val > 0) {
+          ctx.fillStyle = '#1a3a42';
+          ctx.font = 'bold 10px Oswald,sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(val, x + (barW - 2) / 2, y - 4);
+        }
+      });
+
+      // Nhãn năm
+      ctx.fillStyle = '#1a3a42';
+      ctx.font = 'bold 13px Oswald,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(yr, padL + groupW * yi + groupW / 2, H - padB + 20);
+
+      // Tổng mỗi năm
+      ctx.fillStyle = 'rgba(44,105,117,0.7)';
+      ctx.font = '11px Oswald,sans-serif';
+      ctx.fillText(`(${totals[yi]})`, padL + groupW * yi + groupW / 2, H - padB + 36);
+    });
+
+    // Trục
+    ctx.strokeStyle = 'rgba(44,105,117,0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, padT + chartH);
+    ctx.lineTo(padL + chartW, padT + chartH);
+    ctx.stroke();
+
+    // Legend theo năm — mỗi năm 1 màu riêng
+    labels.forEach((yr, i) => {
+      const yrC = yearColorMap[yr] || YEAR_PALETTE[i % YEAR_PALETTE.length];
+      const lx  = padL + i * 80;
+      const ly  = padT - 24;
+      // Hình chữ nhật màu bo góc
+      ctx.fillStyle = yrC.solid;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(lx, ly, 14, 10, 2);
+      else ctx.rect(lx, ly, 14, 10);
+      ctx.fill();
+      ctx.fillStyle = '#1a3a42';
+      ctx.font = 'bold 11px Oswald,sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(yr, lx + 18, ly + 9);
+    });
+  }
+
+  drawCompare(null);
+
+  const tooltip = getOrCreateTooltip();
+  canvas.style.cursor = 'default';
+
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const hit = barRects.find(b => mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h);
+    if (hit) {
+      tooltip.innerHTML = `
+        <div style="font-weight:800;font-size:15px;color:#2c6975;margin-bottom:2px">
+          <i class="fas fa-calendar-alt" style="margin-right:4px"></i>Năm ${hit.yr}
+        </div>
+        <div style="font-size:12px;color:#68b2a0;margin-bottom:6px;font-weight:600">${hit.label}</div>
+        <div style="font-size:26px;font-weight:900;color:#1a3a42;line-height:1">
+          ${hit.val}
+          <span style="font-size:13px;color:#68b2a0;font-weight:400"> sáng kiến</span>
+        </div>`;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top  = (e.clientY - 10) + 'px';
+      canvas.style.cursor = 'pointer';
+      drawCompare(hit.key);
+    } else {
+      tooltip.style.display = 'none';
+      canvas.style.cursor = 'default';
+      drawCompare(null);
+    }
+  };
+  canvas.onmouseleave = () => {
+    tooltip.style.display = 'none';
+    drawCompare(null);
+  };
+}
+
+function buildYearSummary(grouped) {
+  const el = document.getElementById('compare-year-summary');
+  if (!el) return;
+  const utils = window.DataUtils;
+  const years = Object.keys(grouped).sort();
+  el.innerHTML = years.map(yr => {
+    const d = grouped[yr];
+    return `
+      <div class="cmp-year-card">
+        <div class="cmp-year-label">${yr}</div>
+        <div class="cmp-year-total">${d.total}</div>
+        <div class="cmp-year-breakdown">
+          <span style="color:#2c6975">TM: ${d.thammu}</span>
+          <span style="color:#68b2a0">CT: ${d.chinhri}</span>
+          <span style="color:#4b8f8d">HK: ${d.hckt}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+//  TAB: VINH DANH TÁC GIẢ
+// ══════════════════════════════════════
+
+function renderHonorView() {
+  const container = document.getElementById('home-content');
+  const utils = window.DataUtils;
+  if (!utils) { container.innerHTML = '<p>Lỗi: DataUtils chưa tải.</p>'; return; }
+
+  const ranks = utils.rankAuthors(allData, 10);
+  const chart  = utils.toAuthorChartData(ranks);
+
+  const MEDAL = ['🥇','🥈','🥉'];
+  const MEDAL_COLORS = ['#c8a020','#9e9e9e','#cd7f32'];
+
+  container.innerHTML = `
+    <div class="honor-view">
+      <div class="honor-header">
+        <div class="honor-header-icon"><i class="fas fa-trophy"></i></div>
+        <div class="honor-header-text">
+          <div class="honor-header-title">Bảng Vinh Danh Tác Giả</div>
+          <div class="honor-header-sub">Lữ đoàn 279 · BCCB · Top ${ranks.length} tác giả tiêu biểu</div>
+        </div>
+      </div>
+
+      <!-- Podium top 3 -->
+      <div class="honor-podium">
+        ${ranks.slice(0,3).map((r,i) => `
+          <div class="honor-podium-card honor-podium-rank-${i+1}">
+            <div class="honor-podium-medal">${MEDAL[i]}</div>
+            <div class="honor-podium-avatar" style="border-color:${MEDAL_COLORS[i]}">
+              <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="honor-podium-name">${escapeHtml(r.ho_ten)}</div>
+            <div class="honor-podium-rank">${escapeHtml(r.cap_bac||'')} ${escapeHtml(r.chuc_vu||'')}</div>
+            <div class="honor-podium-count" style="color:${MEDAL_COLORS[i]}">
+              ${r.count}
+              <span class="honor-podium-count-lbl">sáng kiến</span>
+            </div>
+          </div>`).join('')}
+      </div>
+
+      <div class="honor-body">
+        <div class="honor-table-wrap">
+          <table class="rank-table">
+            <thead>
+              <tr>
+                <th class="rank-th-pos">Hạng</th>
+                <th class="rank-th-name">Tác giả</th>
+                <th class="rank-th-meta">Cấp bậc / Chức vụ</th>
+                <th class="rank-th-count">Sáng kiến</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ranks.map(r => `
+                <tr class="rank-row${r.rank <= 3 ? ' rank-top' : ''}">
+                  <td>
+                    <span class="rank-badge rank-${Math.min(r.rank,4)}">
+                      ${r.rank <= 3 ? MEDAL[r.rank-1] : r.rank}
+                    </span>
+                  </td>
+                  <td class="rank-name">${escapeHtml(r.ho_ten)}</td>
+                  <td class="rank-meta">${r.cap_bac ? escapeHtml(r.cap_bac) + ' · ' : ''}${escapeHtml(r.chuc_vu || '—')}</td>
+                  <td>
+                    <span class="rank-count">${r.count}</span>
+                    <span class="rank-count-bar" style="width:${Math.round((r.count / (ranks[0]?.count||1))*80)}px"></span>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="honor-chart-wrap">
+          <div class="honor-chart-title">Biểu đồ đóng góp</div>
+          <canvas id="chart-honor" height="320"></canvas>
+        </div>
+      </div>
+    </div>`;
+
+  requestAnimationFrame(() => buildHonorChart(ranks, chart));
+}
+
+function buildHonorChart(ranks, { labels, values, colors }) {
+  const canvas = document.getElementById('chart-honor');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.offsetWidth || 300;
+  const H   = 320;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+
+  const padL = 10, padR = 60, padT = 16, padB = 16;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const n    = labels.length;
+  const barH = Math.max(16, Math.floor(chartH / n) - 6);
+  const maxV = Math.max(...values, 1);
+
+  const barRects = [];
+
+  function drawHonor(hoverIdx) {
+    ctx.clearRect(0, 0, W, H);
+
+    labels.forEach((name, i) => {
+      const val   = values[i];
+      const bw    = Math.max(4, (val / maxV) * chartW);
+      const x     = padL;
+      const y     = padT + i * (barH + 6);
+      const color = colors[i];
+      const isHov = (i === hoverIdx);
+
+      barRects[i] = { x, y, w: bw, h: barH, name, val, color };
+
+      // Bar
+      ctx.shadowBlur = isHov ? 10 : 0;
+      ctx.shadowColor = color;
+      const grad = ctx.createLinearGradient(x, y, x + bw, y);
+      grad.addColorStop(0, color);
+      grad.addColorStop(1, isHov ? color : color + 'aa');
+      ctx.fillStyle = grad;
+      const r = Math.min(4, barH / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + bw - r, y);
+      ctx.quadraticCurveTo(x + bw, y, x + bw, y + r);
+      ctx.lineTo(x + bw, y + barH - r);
+      ctx.quadraticCurveTo(x + bw, y + barH, x + bw - r, y + barH);
+      ctx.lineTo(x + r, y + barH);
+      ctx.quadraticCurveTo(x, y + barH, x, y + barH - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Value label
+      ctx.fillStyle = '#1a3a42';
+      ctx.font = `bold ${isHov ? 13 : 12}px Oswald,sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(val, x + bw + 6, y + barH / 2 + 4);
+
+      // Name label inside bar
+      if (bw > 40) {
+        ctx.fillStyle = '#fff';
+        ctx.font = `${isHov ? 12 : 11}px Oswald,sans-serif`;
+        ctx.textAlign = 'left';
+        const short = name.length > 18 ? name.slice(0, 16) + '…' : name;
+        ctx.fillText(short, x + 8, y + barH / 2 + 4);
+      }
+    });
+  }
+
+  drawHonor(-1);
+
+  const tooltip = getOrCreateTooltip();
+  canvas.style.cursor = 'default';
+
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    let found = -1;
+    barRects.forEach((b, i) => {
+      if (b && mx >= b.x && mx <= b.x + b.w + 20 && my >= b.y && my <= b.y + b.h) found = i;
+    });
+    if (found >= 0) {
+      const b = barRects[found];
+      tooltip.innerHTML = `
+        <div style="font-weight:700;font-size:13px;color:${b.color};margin-bottom:4px">${b.name}</div>
+        <div style="font-size:22px;font-weight:800;color:#1a3a42">${b.val} <span style="font-size:12px;color:#68b2a0">sáng kiến</span></div>`;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top  = (e.clientY - 10) + 'px';
+      canvas.style.cursor = 'pointer';
+      drawHonor(found);
+    } else {
+      tooltip.style.display = 'none';
+      canvas.style.cursor = 'default';
+      drawHonor(-1);
+    }
+  };
+  canvas.onmouseleave = () => {
+    tooltip.style.display = 'none';
+    drawHonor(-1);
+  };
 }
 function goSplash() {
   closeVideoModal();

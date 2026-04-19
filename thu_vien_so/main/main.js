@@ -52,12 +52,12 @@ function createWindow() {
     width: 1400,
     height: 900,
     title: 'Thư Viện Số Sáng Kiến – Lữ Đoàn 279',
-    icon: path.join(__dirname, '../renderer/assets/logo_bc_cong_binh.png'),
+    icon: path.join(__dirname, '../../assets/icon.ico'),
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
       webSecurity: false,
-      devTools: true
+      // devTools: true
     },
     autoHideMenuBar: true
   });
