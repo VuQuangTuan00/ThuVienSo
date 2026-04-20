@@ -945,38 +945,62 @@ function parseAuthors(authors) {
 // ══════════════════════════════════════
 
 /**
+ * Chuẩn hóa chuỗi tiếng Việt: bỏ dấu, lowercase.
+ * Giúp tìm kiếm mờ khi người dùng gõ thiếu/sai dấu.
+ * Ví dụ: "Sáng Kiến" → "sang kien"
+ */
+function normalizeVI(str) {
+  if (!str) return '';
+  return String(str)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')  // bỏ dấu tổ hợp
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd');
+}
+
+/**
  * searchData(data, query)
- * Tìm kiếm không phân biệt hoa/thường.
- * Hỗ trợ: tên sáng kiến · đơn vị · năm · loại · tác giả
+ * Tìm kiếm không phân biệt hoa/thường, HỖ TRỢ tiếng Việt có dấu/không dấu.
+ * Hỗ trợ: tên sáng kiến · đơn vị · năm · loại · mô tả · tác giả
  * Trả về mảng kết quả có thêm field _matchField để biết match ở đâu.
  */
 function searchData(data, query) {
   if (!query || !query.trim()) return [];
-  const q = query.trim().toLowerCase();
+  const q     = query.trim().toLowerCase();  // truy vấn gốc (có dấu)
+  const qNorm = normalizeVI(query.trim());   // truy vấn không dấu
+
+  // Kiểm tra match: ưu tiên khớp có dấu (score cao hơn), fallback không dấu
+  function matchScore(fieldRaw, baseScore) {
+    const fieldLow  = (fieldRaw || '').toLowerCase();
+    const fieldNorm = normalizeVI(fieldRaw);
+    if (fieldLow.includes(q))          return baseScore;       // khớp chính xác (có dấu)
+    if (fieldNorm.includes(qNorm))     return baseScore - 5;   // khớp không dấu (điểm thấp hơn 5)
+    return 0;
+  }
 
   return data
     .map(item => {
-      const fields = {
-        ten:    (item.ten || '').toLowerCase(),
-        don_vi: (item.don_vi || '').toLowerCase(),
-        nam:    String(item.nam || item.ngay_ap_dung || '').toLowerCase(),
-        loai:   (item.loai || '').toLowerCase(),
-        mo_ta:  (item.mo_ta || '').toLowerCase(),
-        authors: parseAuthors(item.authors)
-                   .map(a => `${a.ho_ten} ${a.cap_bac} ${a.chuc_vu}`.toLowerCase())
-                   .join(' '),
-      };
+      const authorsStr = parseAuthors(item.authors)
+        .map(a => `${a.ho_ten} ${a.cap_bac} ${a.chuc_vu}`)
+        .join(' ');
 
-      // Ưu tiên: tên > đơn vị > năm > loại > mô tả > tác giả
       let score = 0;
       let matchField = '';
 
-      if (fields.ten.includes(q))      { score = 100; matchField = 'ten'; }
-      else if (fields.don_vi.includes(q)) { score = 80; matchField = 'don_vi'; }
-      else if (fields.nam.includes(q))    { score = 70; matchField = 'nam'; }
-      else if (fields.loai.includes(q))   { score = 60; matchField = 'loai'; }
-      else if (fields.mo_ta.includes(q))  { score = 40; matchField = 'mo_ta'; }
-      else if (fields.authors.includes(q)){ score = 50; matchField = 'authors'; }
+      const tenScore    = matchScore(item.ten,    100);
+      const donViScore  = matchScore(item.don_vi, 80);
+      const namScore    = matchScore(String(item.nam || item.ngay_ap_dung || ''), 70);
+      const loaiScore   = matchScore(item.loai,   60);
+      const moTaScore   = matchScore(item.mo_ta,  40);
+      const authorScore = matchScore(authorsStr,  50);
+
+      if      (tenScore    > 0) { score = tenScore;    matchField = 'ten'; }
+      else if (donViScore  > 0) { score = donViScore;  matchField = 'don_vi'; }
+      else if (namScore    > 0) { score = namScore;    matchField = 'nam'; }
+      else if (loaiScore   > 0) { score = loaiScore;   matchField = 'loai'; }
+      else if (authorScore > 0) { score = authorScore; matchField = 'authors'; }
+      else if (moTaScore   > 0) { score = moTaScore;   matchField = 'mo_ta'; }
 
       return score > 0 ? { ...item, _score: score, _matchField: matchField } : null;
     })
@@ -984,15 +1008,22 @@ function searchData(data, query) {
     .sort((a, b) => b._score - a._score);
 }
 
-/** Highlight từ khóa trong text (safe HTML) */
+/** Highlight từ khóa trong text (safe HTML).
+ *  Highlight cả khớp có dấu lẫn không dấu.
+ */
 function highlightKeyword(text, query) {
   if (!text || !query) return escapeHtml(text || '');
-  const safe  = escapeHtml(text);
-  const safeQ = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return safe.replace(
-    new RegExp(`(${safeQ})`, 'gi'),
-    '<mark class="search-hl">$1</mark>'
-  );
+  const safe = escapeHtml(text);
+  // Escape ký tự regex trong query GỐC (không escape HTML trước)
+  const escapedQ = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  try {
+    return safe.replace(
+      new RegExp(`(${escapedQ})`, 'gi'),
+      '<mark class="search-hl">$1</mark>'
+    );
+  } catch (e) {
+    return safe; // Nếu regex lỗi, trả về text gốc đã escape
+  }
 }
 
 // Debounce timer
@@ -1001,6 +1032,7 @@ let _searchTimer = null;
 function onHomeSearch(value) {
   clearTimeout(_searchTimer);
   _searchTimer = setTimeout(() => _execSearch(value), 180);
+  console.log('[Search] Query:', value);
 }
 
 function _execSearch(value) {
@@ -1010,7 +1042,10 @@ function _execSearch(value) {
   const countEl  = document.getElementById('search-result-count');
   const clearBtn = document.getElementById('search-clear-btn');
 
-  if (!overlay || !list) return;
+  // FIX: Kiểm tra DOM elements tồn tại
+  if (!overlay) { console.error('[Search] #search-overlay không tìm thấy trong DOM'); return; }
+  if (!list)    { console.error('[Search] #search-results-list không tìm thấy trong DOM'); return; }
+  if (!countEl) { console.error('[Search] #search-result-count không tìm thấy trong DOM'); return; }
 
   if (!q) {
     overlay.classList.remove('open');
@@ -1020,7 +1055,16 @@ function _execSearch(value) {
 
   if (clearBtn) clearBtn.style.display = 'flex';
 
+  // FIX: Kiểm tra allData đã load chưa
+  console.log(`[Search] Query: "${q}" | allData.length: ${allData.length}`);
+  if (!allData.length) {
+    list.innerHTML = '<div class="search-empty"><i class="fas fa-spinner fa-spin"></i><p>Đang tải dữ liệu...</p></div>';
+    overlay.classList.add('open');
+    return;
+  }
+
   const results = searchData(allData, q);
+  console.log(`[Search] Kết quả: ${results.length}`);
 
   countEl.innerHTML = results.length
     ? `<i class="fas fa-search"></i> Tìm thấy <strong>${results.length}</strong> kết quả cho "<em>${escapeHtml(q)}</em>"`

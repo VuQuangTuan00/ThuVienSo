@@ -175,7 +175,7 @@ body {
 
 .sb-nav { flex: 1; padding: 12px 8px; overflow-y: auto; }
 
-.sb-section {
+.sb-section {   
   font-family: var(--mono);
   font-size: 9px; letter-spacing: 3px;
   color: var(--gold-d); text-transform: uppercase;

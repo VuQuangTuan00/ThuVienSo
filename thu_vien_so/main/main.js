@@ -51,7 +51,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
-    title: 'Thư Viện Số Sáng Kiến – Lữ Đoàn 279',
+    title: 'Thư Viện Số Sáng Kiến – Lữ Đoàn 279', 
     icon: path.join(__dirname, '../../assets/icon.ico'),
     webPreferences: {
       nodeIntegration: true,
