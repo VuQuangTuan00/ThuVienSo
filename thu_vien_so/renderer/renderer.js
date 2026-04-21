@@ -733,14 +733,14 @@ function updateVideoButtonState(item) {
 function renderFilePreview(item) {
   const el = document.getElementById('d-file-preview');
   if (!el) return;
-
+  const bxct = "Bấm xem chi tiết";
   // Chỉ lưu TÊN FILE (đã lưu trong DB)
   const files = [
-    { ten: 'Thuyết minh', file: item.file_thuyet_minh },
-    { ten: 'Quyết định',  file: item.file_quyet_dinh },
-    { ten: 'Hình ảnh',    file: item.file_anh },
-    { ten: 'Bản vẽ',      file: item.file_ban_ve },
-    { ten: 'Hiệu quả',    file: item.file_hieu_qua }
+    {  file: item.file_thuyet_minh },
+    {   file: item.file_quyet_dinh },
+    {     file: item.file_anh },
+    {       file: item.file_ban_ve },
+    {     file: item.file_hieu_qua }
   ].filter(f => f.file && String(f.file).trim() !== '');
 
   if (files.length === 0) {
@@ -753,8 +753,8 @@ function renderFilePreview(item) {
     <div class="file-item" data-idx="${i}">
       <div class="fi-icon"><i class="fas fa-file-alt"></i></div>
       <div>
-        <div class="fi-name">${f.ten}</div>
-        <div class="fi-sub">${f.file}</div>
+        <div class="fi-name">${f.file}</div>
+        <div class="fi-sub">${bxct}</div>
       </div>
       <i class="fas fa-chevron-right fi-arrow"></i>
     </div>
@@ -835,17 +835,18 @@ function openHoSoModal() {
   const overlay = document.getElementById('modal-hoso');
   const body = document.getElementById('modal-hoso-body');
   const title = document.getElementById('modal-hoso-title');
+  const bxct = "Bấm xem chi tiết";
   if (!item || !overlay || !body) return;
 
   title.textContent = 'Hồ sơ — ' + item.ten;
 
   // 1. Thu thập các tệp tin từ các trường dữ liệu mới
   const files = [
-    { ten: 'Thuyết minh', path: item.file_thuyet_minh },
-    { ten: 'Quyết định', path: item.file_quyet_dinh },
-    { ten: 'Hình ảnh sáng kiến', path: item.file_anh },
-    { ten: 'Bản vẽ kỹ thuật', path: item.file_ban_ve },
-    { ten: 'Đánh giá hiệu quả', path: item.file_hieu_qua }
+    { ten: bxct, path: item.file_thuyet_minh },
+    { ten: bxct, path: item.file_quyet_dinh },
+    { ten: bxct, path: item.file_anh },
+    { ten: bxct, path: item.file_ban_ve },
+    { ten: bxct, path: item.file_hieu_qua }
   ].filter(f => f.path && String(f.path).trim() !== '');
 
   let html = '';
@@ -860,7 +861,7 @@ function openHoSoModal() {
         <div class="file-item hoso-file-item" data-idx="${files.indexOf(f)}">
           <div class="fi-icon"><i class="fas fa-file-alt"></i></div>
           <div>
-            <div class="fi-name">${escapeHtml(f.ten)}</div>
+            <div class="fi-name">${escapeHtml(f.path)}</div>
             <div class="fi-sub">Bấm để xem chi tiết</div>
           </div>
           <i class="fas fa-external-link-alt fi-arrow"></i>

@@ -345,6 +345,7 @@ body {
   border-bottom: 3px solid transparent;
   transition: all .2s;
   display: flex; align-items: center; gap: 8px;
+  font-weight: bold;
 }
 .nav-tab:hover  { color: var(--cream); }
 .nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
@@ -723,10 +724,11 @@ body {
 
 .detail-topbar-title {
   font-family: 'Oswald', sans-serif;
-  font-size: 16px; letter-spacing: 3px;
+  font-size: 16px; letter-spacing: 1px;
   color: var(--cream); text-transform: uppercase;
   flex: 1; overflow: hidden;
   white-space: nowrap; text-overflow: ellipsis;
+  font-weight: bolder;
 }
 
 .btn-home {
@@ -809,7 +811,7 @@ body {
 
 .files-title {
   font-family: 'Oswald', sans-serif;
-  font-size: 13px; letter-spacing: 4px;
+  font-size: 13px; letter-spacing: 1px;
   text-transform: uppercase; color: var(--mid);
   margin-bottom: 16px;
   display: flex; align-items: center; gap: 10px;
@@ -1533,11 +1535,11 @@ mark.search-hl {
 /* Số sáng kiến + mini bar */
 .rank-count {
   font-family: 'Oswald', sans-serif;
-  font-size: 20px; font-weight: 900;
-  color: var(--dark); display: inline-block;
+  font-size: 22px; font-weight: 900;
+  color: var(--dark);
   min-width: 28px;
 }
-.rank-top .rank-count { font-size: 22px; color: #1a3a42; }
+.rank-top .rank-count { font-size: 16px; color: #1a3a42; }
 
 .rank-count-bar {
   display: inline-block;

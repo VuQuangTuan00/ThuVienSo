@@ -5,6 +5,13 @@
   "build": {
     "appId": "com.lu279.thuviensangien",
     "productName": "Thư Viện Số Sáng Kiến",
+     "extraResources": [
+      {
+        "from": "db/",
+        "to": "db/",
+        "filter": ["**/*"]
+      }
+    ],
     "win": {
       "icon": "assets/icon.ico",
       "target": [

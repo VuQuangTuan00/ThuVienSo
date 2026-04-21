@@ -2,6 +2,7 @@
 const { ipcMain, BrowserWindow } = require('electron');
 const path = require('path');
 const db   = require('../renderer/database');
+const { fuzzyCheckNewSangKien } = require('./fuzzy');
 
 function registerIPC() {
 
@@ -32,6 +33,16 @@ function registerIPC() {
   ipcMain.handle('sangkien:delete', (_, id) => {
     try { db.deleteSangKien(id); return { ok:true }; }
     catch(e) { return { ok:false, error: e.message }; }
+  });
+
+  ipcMain.handle('sangkien:fuzzyCheck', (_, data) => {
+    try {
+      const allSangKien = db.getAllSangKien();
+      const result = fuzzyCheckNewSangKien(data, allSangKien);
+      return { ok: true, data: result };
+    } catch(e) {
+      return { ok: false, error: e.message };
+    }
   });
 
   // ══════════════════════════════════════

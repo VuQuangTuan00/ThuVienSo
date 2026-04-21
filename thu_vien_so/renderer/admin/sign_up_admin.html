@@ -367,6 +367,33 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════════
+     FUZZY WARNING MODAL
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="fuzzy-warning-modal">
+  <div class="modal" style="width: 500px">
+    <div class="modal-header" style="border-bottom-color: rgba(220,50,50,0.3)">
+      <h2 style="color: var(--red-l)"><i class="fas fa-exclamation-triangle"></i> Phát hiện trùng lặp</h2>
+      <button class="modal-close" onclick="closeFuzzyWarningModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 12px; font-size: 14px; color: var(--mid)">Hệ thống phát hiện một số sáng kiến có tên tương tự đã tồn tại trong cùng đơn vị hoặc cùng năm. Bạn có chắc chắn muốn tiếp tục lưu?</p>
+      <table class="mil-table">
+        <thead>
+          <tr><th>Tên sáng kiến nghi trùng</th><th style="width: 100px">Tỉ lệ</th></tr>
+        </thead>
+        <tbody id="fuzzy-matches-tbody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeFuzzyWarningModal()">Quay lại chỉnh sửa</button>
+      <button class="btn-save" style="background: rgba(139,26,26,0.8); border-color: var(--red)" onclick="confirmSaveSangKien()">
+        <i class="fas fa-check"></i> Tiếp tục lưu
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script src="../lib/data_utils.js"></script>
 <script src="../mock_data.js"></script>
