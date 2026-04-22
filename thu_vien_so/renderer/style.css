@@ -39,15 +39,18 @@ body {
   overflow-x: hidden;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   SCREENS
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* SCREENS */
 .screen { display:none; width:100%; min-height:100vh; }
 .screen.active { display:flex; flex-direction:column; }
+.admin-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  background: var(--g1);
+  border-right: 2px solid rgba(104,178,160,0.5);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   LOADING SCREEN
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 #screen-loading {
   align-items: center;
   justify-content: center;
@@ -219,7 +222,7 @@ body {
 /* 
    HOME SCREEN
  */
-#screen-home { background: var(--g1); position: relative; }
+#screen-home { background: var(--g1); flex-direction: row; overflow: hidden; }
 
 .top-bar {
   background: var(--g2);
@@ -1583,4 +1586,110 @@ mark.search-hl {
   font-size: 12px; margin-top: 6px;
   display: flex; gap: 6px; justify-content: center;
   flex-wrap: wrap;
+}
+
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  background: var(--g1);
+  border-right: 2px solid rgba(104,178,160,0.5);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.sb-brand {
+  padding: 20px 16px;
+  border-bottom: 1px solid rgba(200,160,32,0.15);
+  text-align: center;
+}
+.sb-brand .star { font-size: 20px; color: var(--gold); margin-bottom: 6px; }
+.sb-brand h2 {
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px; letter-spacing: 3px;
+  color: var(--cream); text-transform: uppercase;
+}
+.sb-brand p {
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 2px;
+  color: var(--dim); text-transform: uppercase; margin-top: 3px;
+}
+
+.sb-nav { flex: 1; padding: 12px 8px; overflow-y: auto; }
+
+.sb-section {   
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 3px;
+  color: var(--gold-d); text-transform: uppercase;
+  padding: 10px 10px 6px;
+}
+
+.sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 3px;
+  cursor: pointer; margin-bottom: 2px;
+  font-family: 'Oswald', sans-serif;
+  font-size: 13px; letter-spacing: 1px;
+  color: var(--mid); text-transform: uppercase;
+  transition: all .2s;
+  border: 1px solid transparent;
+}
+.sb-item i          { width: 16px; text-align: center; font-size: 12px; }
+.sb-item:hover      { color: var(--cream); background: var(--g3); }
+.sb-item.active     {
+  color: var(--gold);
+  background: rgba(200,160,32,0.08);
+  border-color: rgba(200,160,32,0.2);
+}
+
+.sb-footer {
+  padding: 12px 8px;
+  border-top: 1px solid rgba(200,160,32,0.1);
+}
+.sb-logout {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; cursor: pointer;
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px; letter-spacing: 1px;
+  color: var(--dim); text-transform: uppercase;
+  transition: all .2s;
+}
+.sb-logout:hover { color: var(--red-l); }
+
+/* ── Main Area ── */
+.admin-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.admin-topbar {
+  background: var(--g2);
+  border-bottom: 1px solid rgba(200,160,32,0.15);
+  padding: 0 24px; height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.admin-topbar h2 {
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--cream);
+}
+
+.topbar-right    { display: flex; align-items: center; gap: 12px; }
+.topbar-link {
+  font-family: 'Oswald', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--mid);
+  border: 1px solid rgba(200,160,32,0.2);
+  background: transparent;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all .2s;
+}
+.topbar-link:hover { color: var(--gold); border-color: var(--gold); }
+.topbar-badge {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 2px; color: var(--gold);
+  border: 1px solid var(--gold-d);
+  padding: 4px 10px; text-transform: uppercase;
 }

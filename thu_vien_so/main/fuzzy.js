@@ -1,4 +1,4 @@
-const STOP_WORDS = new Set([
+  const STOP_WORDS = new Set([
   'he', 'thong', 'phan', 'mem', 'mo', 'hinh', 'thiet', 'bi', 'ung', 'dung', 'giai', 'phap',
   'sang', 'kien', 'cai', 'tien', 'ky', 'thuat', 'xay', 'dung'
 ]);

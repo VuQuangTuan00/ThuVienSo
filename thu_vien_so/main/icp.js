@@ -1,8 +1,9 @@
 // File: src/main/ipc.js
-const { ipcMain, BrowserWindow } = require('electron');
+const { ipcMain, BrowserWindow, app } = require('electron');
 const path = require('path');
 const db   = require('../renderer/database');
 const { fuzzyCheckNewSangKien } = require('./fuzzy');
+const { checkAllFiles }         = require('./file_check');
 
 function registerIPC() {
 
@@ -41,6 +42,38 @@ function registerIPC() {
       const result = fuzzyCheckNewSangKien(data, allSangKien);
       return { ok: true, data: result };
     } catch(e) {
+      return { ok: false, error: e.message };
+    }
+  });
+
+  // ══════════════════════════════════════
+  //  KIỂM TRA TRÙNG FILE ĐÍNH KÈM
+  // ══════════════════════════════════════
+
+  /**
+   * file:checkDuplicate
+   * Renderer gửi:
+   *   newFileMap  — { file_thuyet_minh: 'C:/abs/path/file.pdf', ... }
+   *   oldFileMap  — { file_thuyet_minh: 'old_name.pdf', ... } hoặc null
+   *   excludeId   — ID sáng kiến đang sửa (null khi Add)
+   *
+   * Main Process trả về:
+   *   { ok, data: { hasWarning, results: [...] } }
+   */
+  ipcMain.handle('file:checkDuplicate', (_, { newFileMap, oldFileMap, excludeId }) => {
+    try {
+      const FILE_DIR    = path.join(app.getPath('userData'), 'files');
+      const allSangKien = db.getAllSangKien();
+      const result      = checkAllFiles(
+        newFileMap,
+        oldFileMap  || null,
+        FILE_DIR,
+        allSangKien,
+        excludeId   || null
+      );
+      return { ok: true, data: result };
+    } catch (e) {
+      console.error('[IPC] file:checkDuplicate error:', e);
       return { ok: false, error: e.message };
     }
   });

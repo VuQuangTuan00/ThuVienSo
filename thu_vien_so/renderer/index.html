@@ -39,12 +39,39 @@
 
 <!-- HOME -->
 <div id="screen-home" class="screen">
-
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="star">
+        <img src="../../assets/logo_bc_cong_binh.png">
+      </div>
+      <h2>Admin Panel</h2>
+      <p>Lữ Đoàn 279</p>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-section">Quản lý</div>
+      <div class="sb-item active" onclick="switchTab('compare',this)">
+        <i class="fas fa-chart-bar"></i> Tổng quan
+      </div>
+      <div class="sb-item" onclick="showPage('sangkien',this)">
+        <i class="fas fa-list"></i> Sáng kiến
+      </div>
+      <div class="sb-section">Hệ thống</div>
+      <div class="sb-item" onclick="showPage('settings',this)">
+        <i class="fas fa-cog"></i> Cài đặt
+      </div>
+    </div>
+    <div class="sb-footer">
+      <div class="sb-logout" onclick="doLogout()">
+        <i class="fas fa-sign-out-alt"></i> Đăng xuất
+      </div>
+    </div>
+  </div>
+   <div class="admin-main">
   <div class="top-bar">
     <div class="top-bar-left">
-      <div class="top-logo">
+      <!-- <div class="top-logo">
         <img class="unit-logo top-logo-image" src="../../assets/logo_bc_cong_binh.png" alt="Logo">
-      </div>
+      </div> -->
       <div class="top-title">
         <h1>Thư Viện Số Sáng Kiến</h1>
         <p>Lữ đoàn 279 · BCCB · Năm 2026</p>
@@ -77,6 +104,7 @@
 
   <!-- Nav tabs — 6 tabs -->
   <div class="home-nav">
+  
     <div class="nav-tab active" onclick="switchTab('all',this)">
       <i class="fas fa-chart-pie"></i> Tổng quan
     </div>
@@ -97,7 +125,8 @@
     </div>
   </div>
 
-  <div class="home-content" id="home-content"></div>
+  <div class="home-content" id="home-content">
+  </div>
 
   <!-- Search results overlay (hiện ngay dưới search bar) -->
   <div id="search-overlay" class="search-overlay">
@@ -108,6 +137,7 @@
     <div id="search-results-list" class="search-results-list"></div>
   </div>
 
+</div>
 </div>
 
 <!-- DETAIL -->

@@ -168,6 +168,7 @@ function renderItems(tab) {
 
   if (tab === 'all') {
     container.innerHTML = `
+    
       <div class="charts-wrap">
         <div class="chart-card">
           <div class="chart-title">
