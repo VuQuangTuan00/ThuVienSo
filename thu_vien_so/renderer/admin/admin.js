@@ -102,25 +102,26 @@ function adminMockCall(channel, ...args) {
 }
 
 // ── State ──
-let editingId       = null;
-let allData         = [];
-let filteredData    = [];
-let currentPage     = 1;
-const PAGE_SIZE     = 8;
+let editingId = null;
+let allData = [];
+let filteredData = [];
+let currentPage = 1;
+const PAGE_SIZE = 8;
 let pendingSaveData = null;
 
 // File check state
-let _pendingFileCheckData  = null;  // data đang chờ sau khi confirm file warning
+let _pendingFileCheckData = null;  // data đang chờ sau khi confirm file warning
 let _pendingFileCheckIsEdit = false;
+let _pendingFileCheckSkipSimhash = false;
 
 // Map: inputId → đường dẫn TUYỆT ĐỐI file mới chọn (chưa copy)
 // Dùng để gửi lên Main process kiểm tra trùng
 const _newFilePaths = {
   'form-file-thuyet-minh': null,
-  'form-file-quyet-dinh':  null,
-  'form-file-anh':         null,
-  'form-file-ban-ve':      null,
-  'form-file-hieu-qua':    null,
+  'form-file-quyet-dinh': null,
+  'form-file-anh': null,
+  'form-file-ban-ve': null,
+  'form-file-hieu-qua': null,
 };
 
 // Map: field → tên file cũ khi Edit (để loại trừ khi check)
@@ -175,26 +176,71 @@ function openLibrary() { window.location.href = '../index.html'; }
 // ══════════════════════════════════════
 //  DASHBOARD
 // ══════════════════════════════════════
+// Map: inputId → tên trường (field) trong DB — dùng để gọi file:checkDuplicate
+const INPUT_TO_FIELD_MAP = {
+  'form-file-thuyet-minh': 'file_thuyet_minh',
+  'form-file-quyet-dinh': 'file_quyet_dinh',
+  'form-file-anh': 'file_anh',
+  'form-file-ban-ve': 'file_ban_ve',
+  'form-file-hieu-qua': 'file_hieu_qua',
+};
 
 async function handleSelectFile(inputId) {
+  // BƯỚC 1: Chọn file và copy vào FILE_DIR
   const res = await call('admin:pick-and-copy');
-
   if (!res.ok) {
     if (res.error) showToast('Lỗi chọn file: ' + res.error, 'error');
     return;
   }
 
-  // Lưu tên file hiển thị vào input
-  const displayName = (res.fileName || res.filePath || '').trim();
-  document.getElementById(inputId).value = displayName;
+  const displayName = (res.fileName || '').trim();
+  const sourcePath = res.sourcePath || null;
 
-  // Lưu đường dẫn TUYỆT ĐỐI (từ sourcePath trước khi copy)
-  // để Main process đọc nội dung kiểm tra trùng
-  if (_newFilePaths.hasOwnProperty(inputId)) {
-    _newFilePaths[inputId] = res.sourcePath || null;
+  // BƯỚC 2: Kiểm tra trùng nội dung file ĐÃ COPY (dùng sourcePath để đọc)
+  // Thực hiện ngay sau khi copy, nếu bị BLOCK sẽ xóa bản copy và không chấp nhận
+  if (ipc && sourcePath) {
+    const fieldName = INPUT_TO_FIELD_MAP[inputId] || 'file_thuyet_minh';
+
+    // Dùng sourcePath để kiểm tra trước khi lưu vào DB
+    const checkRes = await call('file:checkDuplicate', {
+      newFileMap: { [fieldName]: sourcePath },
+      oldFileMap: null,
+      excludeId: editingId || null,
+      skipSimhashWarning: false,
+    });
+
+    if (checkRes.ok && checkRes.data.hasWarning) {
+      const results = checkRes.data.results;
+      const hasBlock = results.some(r =>
+        r.level === 'exact_block' || r.level === 'chunk_block'
+      );
+
+      if (hasBlock) {
+        // Xóa bản copy vừa tạo (nếu IPC trả filePath)
+        if (res.filePath) {
+          try { require('fs').unlinkSync(res.filePath); } catch (_) { }
+        }
+        const topMatch = results[0]?.matches[0];
+        const matchInfo = topMatch
+          ? ` (trùng với: “${topMatch.sangKienTen || topMatch.fileName}”)`
+          : '';
+        showToast(`❌ File bị từ chối: trùng nội dung${matchInfo}`, 'error');
+        return; // Không cập nhật input
+      }
+
+      // SimHash / chunk_warning: vẫn chấp nhận nhưng cảnh báo
+      if (results.some(r => r.level === 'simhash_warning' || r.level === 'chunk_warning')) {
+        showToast('⚠️ File có nội dung tương tự với tài liệu đã có. Đã chấp nhận, vui lòng kiểm tra.', 'warn');
+      }
+    }
   }
 
-  showToast(`Đã chọn: ${displayName}`, 'success');
+  // BƯỚC 3: Chấp nhận file — cập nhật UI và state
+  document.getElementById(inputId).value = displayName;
+  if (_newFilePaths.hasOwnProperty(inputId)) {
+    _newFilePaths[inputId] = sourcePath;
+  }
+  showToast(`✅ Đã chọn: ${displayName}`, 'success');
 }
 
 async function loadDashboard() {
@@ -337,18 +383,18 @@ function openForm(id = null) {
 
     // ── 5 file hồ sơ ──
     document.getElementById('form-file-thuyet-minh').value = item.file_thuyet_minh || '';
-    document.getElementById('form-file-quyet-dinh').value  = item.file_quyet_dinh  || '';
-    document.getElementById('form-file-anh').value         = item.file_anh          || '';
-    document.getElementById('form-file-ban-ve').value      = item.file_ban_ve       || '';
-    document.getElementById('form-file-hieu-qua').value    = item.file_hieu_qua     || '';
+    document.getElementById('form-file-quyet-dinh').value = item.file_quyet_dinh || '';
+    document.getElementById('form-file-anh').value = item.file_anh || '';
+    document.getElementById('form-file-ban-ve').value = item.file_ban_ve || '';
+    document.getElementById('form-file-hieu-qua').value = item.file_hieu_qua || '';
 
     // Snapshot file cũ để loại trừ khi kiểm tra trùng (Edit mode)
     _oldFilesSnapshot = {
       'form-file-thuyet-minh': item.file_thuyet_minh || '',
-      'form-file-quyet-dinh':  item.file_quyet_dinh  || '',
-      'form-file-anh':         item.file_anh          || '',
-      'form-file-ban-ve':      item.file_ban_ve       || '',
-      'form-file-hieu-qua':    item.file_hieu_qua     || '',
+      'form-file-quyet-dinh': item.file_quyet_dinh || '',
+      'form-file-anh': item.file_anh || '',
+      'form-file-ban-ve': item.file_ban_ve || '',
+      'form-file-hieu-qua': item.file_hieu_qua || '',
     };
 
     (item.authors || []).forEach(a => addAuthorRow(a));
@@ -371,13 +417,13 @@ function clearForm() {
     'form-file-thuyet-minh', 'form-file-quyet-dinh',
     'form-file-anh', 'form-file-ban-ve', 'form-file-hieu-qua']
     .forEach(id => { document.getElementById(id).value = ''; });
-  document.getElementById('form-loai').value     = 'MÔ PHỎNG 3D';
+  document.getElementById('form-loai').value = 'MÔ PHỎNG 3D';
   document.getElementById('form-linh-vuc').value = 'thammu';
   document.getElementById('authors-list').innerHTML = '';
 
   // Reset file check state
   Object.keys(_newFilePaths).forEach(k => { _newFilePaths[k] = null; });
-  _oldFilesSnapshot    = {};
+  _oldFilesSnapshot = {};
   _pendingFileCheckData = null;
 }
 
@@ -426,19 +472,19 @@ async function saveSangKien() {
 
   const data = {
     ten,
-    loai:         document.getElementById('form-loai').value,
-    linh_vuc:     document.getElementById('form-linh-vuc').value,
-    don_vi:       document.getElementById('form-don-vi').value.trim(),
+    loai: document.getElementById('form-loai').value,
+    linh_vuc: document.getElementById('form-linh-vuc').value,
+    don_vi: document.getElementById('form-don-vi').value.trim(),
     ngay_ap_dung: document.getElementById('form-ngay').value.trim(),
-    danh_gia:     5,
-    mo_ta:        document.getElementById('form-mo-ta').value.trim(),
-    link_video:   document.getElementById('form-link-video').value.trim(),
-    qr_noi_dung:  document.getElementById('form-qr').value.trim(),
+    danh_gia: 5,
+    mo_ta: document.getElementById('form-mo-ta').value.trim(),
+    link_video: document.getElementById('form-link-video').value.trim(),
+    qr_noi_dung: document.getElementById('form-qr').value.trim(),
     file_thuyet_minh: document.getElementById('form-file-thuyet-minh').value.trim(),
-    file_quyet_dinh:  document.getElementById('form-file-quyet-dinh').value.trim(),
-    file_anh:         document.getElementById('form-file-anh').value.trim(),
-    file_ban_ve:      document.getElementById('form-file-ban-ve').value.trim(),
-    file_hieu_qua:    document.getElementById('form-file-hieu-qua').value.trim(),
+    file_quyet_dinh: document.getElementById('form-file-quyet-dinh').value.trim(),
+    file_anh: document.getElementById('form-file-anh').value.trim(),
+    file_ban_ve: document.getElementById('form-file-ban-ve').value.trim(),
+    file_hieu_qua: document.getElementById('form-file-hieu-qua').value.trim(),
     authors: getAuthors()
   };
 
@@ -447,43 +493,127 @@ async function saveSangKien() {
   // ══ BƯỚC 1: Kiểm tra trùng FILE (ưu tiên hơn fuzzy check tên) ══
   const hasNewFiles = Object.values(_newFilePaths).some(p => p !== null);
   if (hasNewFiles && ipc) {
-    // Chuyển _newFilePaths (inputId → path) sang (field → path)
     const fieldMap = {
       file_thuyet_minh: _newFilePaths['form-file-thuyet-minh'],
-      file_quyet_dinh:  _newFilePaths['form-file-quyet-dinh'],
-      file_anh:         _newFilePaths['form-file-anh'],
-      file_ban_ve:      _newFilePaths['form-file-ban-ve'],
-      file_hieu_qua:    _newFilePaths['form-file-hieu-qua'],
+      file_quyet_dinh: _newFilePaths['form-file-quyet-dinh'],
+      file_anh: _newFilePaths['form-file-anh'],
+      file_ban_ve: _newFilePaths['form-file-ban-ve'],
+      file_hieu_qua: _newFilePaths['form-file-hieu-qua'],
     };
-    // Chỉ gửi các file thực sự mới (không null)
     const newFileMap = Object.fromEntries(
       Object.entries(fieldMap).filter(([, v]) => v !== null)
     );
-
-    // oldFileMap: tên file cũ (để loại trừ khi Edit)
     const oldFileMap = wasEdit ? {
       file_thuyet_minh: _oldFilesSnapshot['form-file-thuyet-minh'] || '',
-      file_quyet_dinh:  _oldFilesSnapshot['form-file-quyet-dinh']  || '',
-      file_anh:         _oldFilesSnapshot['form-file-anh']          || '',
-      file_ban_ve:      _oldFilesSnapshot['form-file-ban-ve']       || '',
-      file_hieu_qua:    _oldFilesSnapshot['form-file-hieu-qua']     || '',
+      file_quyet_dinh: _oldFilesSnapshot['form-file-quyet-dinh'] || '',
+      file_anh: _oldFilesSnapshot['form-file-anh'] || '',
+      file_ban_ve: _oldFilesSnapshot['form-file-ban-ve'] || '',
+      file_hieu_qua: _oldFilesSnapshot['form-file-hieu-qua'] || '',
+    } : null;
+
+    // Lần kiểm tra đầu: bật SimHash warning (skipSimhashWarning = false)
+    const fileCheckRes = await call('file:checkDuplicate', {
+      newFileMap,
+      oldFileMap,
+      excludeId: wasEdit ? editingId : null,
+      skipSimhashWarning: false,
+    });
+
+    if (fileCheckRes.ok && fileCheckRes.data.hasWarning) {
+      const results = fileCheckRes.data.results;
+      const hasBlock = results.some(r =>
+        r.level === 'exact_block' || r.level === 'chunk_block'
+      );
+      const hasSimhashOnly = !hasBlock && results.every(r => r.level === 'simhash_warning');
+
+      if (hasSimhashOnly) {
+        // SimHash warning: hỏi người dùng tiếp tục hay chọn file khác
+        // Lưu data + trạng thái để dùng khi confirm
+        _pendingFileCheckData = data;
+        _pendingFileCheckIsEdit = wasEdit;
+        _pendingFileCheckSkipSimhash = true;
+        showFileDuplicateModal(results);
+        return;
+      } else {
+        // Có BLOCK hoặc chunk_warning → hiển thị modal đầy đủ Rule Engine
+        _pendingFileCheckData = data;
+        _pendingFileCheckIsEdit = wasEdit;
+        _pendingFileCheckSkipSimhash = true;
+        showFileDuplicateModal(results);
+        return;
+      }
+    }
+  }
+
+  // ══ BƯỚC 2: Kiểm tra trùng TÊN sáng kiến — CHẶN CỨNG khi trùng (ứng dụng chỉ Add) ══
+  if (!wasEdit) {
+    const fuzzyRes = await call('sangkien:fuzzyCheck', data);
+    if (fuzzyRes.ok && fuzzyRes.data.shouldWarn) {
+      const top = fuzzyRes.data.matches[0];
+      const nameHint = top ? ` (giống “${top.ten}” ~ ${top.score}%)` : '';
+      showToast(`❌ Không thể thêm: Tên sáng kiến bị trùng${nameHint}. Vui lòng đặt tên khác.`, 'error');
+      return; // Chặn cứng — không hiển thị modal, không cho tiếp tục lưu
+    }
+  }
+
+  await executeSave(data, wasEdit);
+}
+
+// Confirm từ File Duplicate Modal — tiếp tục lưu dù có trùng SimHash/Chunk
+async function confirmSaveWithDuplicateFiles() {
+  closeFileDuplicateModal();
+  if (!_pendingFileCheckData) return;
+
+  const wasEdit = _pendingFileCheckIsEdit;
+  const data = _pendingFileCheckData;
+  const skipSimh = _pendingFileCheckSkipSimhash;
+  _pendingFileCheckData = null;
+  _pendingFileCheckSkipSimhash = false;
+
+  // Nếu có file mới, chạy lại kiểm tra với skipSimhashWarning = true
+  // để bỏ qua SimHash warning đã xác nhận, tiến tới Chunk Rule Engine
+  const hasNewFiles = Object.values(_newFilePaths).some(p => p !== null);
+  if (hasNewFiles && ipc && skipSimh) {
+    const fieldMap = {
+      file_thuyet_minh: _newFilePaths['form-file-thuyet-minh'],
+      file_quyet_dinh: _newFilePaths['form-file-quyet-dinh'],
+      file_anh: _newFilePaths['form-file-anh'],
+      file_ban_ve: _newFilePaths['form-file-ban-ve'],
+      file_hieu_qua: _newFilePaths['form-file-hieu-qua'],
+    };
+    const newFileMap = Object.fromEntries(
+      Object.entries(fieldMap).filter(([, v]) => v !== null)
+    );
+    const oldFileMap = wasEdit ? {
+      file_thuyet_minh: _oldFilesSnapshot['form-file-thuyet-minh'] || '',
+      file_quyet_dinh: _oldFilesSnapshot['form-file-quyet-dinh'] || '',
+      file_anh: _oldFilesSnapshot['form-file-anh'] || '',
+      file_ban_ve: _oldFilesSnapshot['form-file-ban-ve'] || '',
+      file_hieu_qua: _oldFilesSnapshot['form-file-hieu-qua'] || '',
     } : null;
 
     const fileCheckRes = await call('file:checkDuplicate', {
       newFileMap,
       oldFileMap,
       excludeId: wasEdit ? editingId : null,
+      skipSimhashWarning: true,  // bỏ qua SimHash — chạy thẳng Chunk Engine
     });
 
     if (fileCheckRes.ok && fileCheckRes.data.hasWarning) {
-      _pendingFileCheckData   = data;
+      const results = fileCheckRes.data.results;
+      // Chunk Rule Engine trả về BLOCK → chặn cứng
+      const hasBlock = results.some(r =>
+        r.level === 'exact_block' || r.level === 'chunk_block'
+      );
+      _pendingFileCheckData = data;
       _pendingFileCheckIsEdit = wasEdit;
-      showFileDuplicateModal(fileCheckRes.data.results);
-      return; // Dừng, chờ user quyết định
+      _pendingFileCheckSkipSimhash = false; // đã skip rồi, lần này không skip nữa
+      showFileDuplicateModal(results);
+      return;
     }
   }
 
-  // ══ BƯỚC 2: Kiểm tra trùng TÊN (fuzzy — chỉ khi Add) ══
+  // Vẫn chạy fuzzy check tên (nếu Add)
   if (!wasEdit) {
     const fuzzyRes = await call('sangkien:fuzzyCheck', data);
     if (fuzzyRes.ok && fuzzyRes.data.shouldWarn) {
@@ -496,31 +626,11 @@ async function saveSangKien() {
   await executeSave(data, wasEdit);
 }
 
-// Confirm từ File Duplicate Modal — tiếp tục lưu dù có trùng
-async function confirmSaveWithDuplicateFiles() {
-  closeFileDuplicateModal();
-  if (_pendingFileCheckData) {
-    const wasEdit = _pendingFileCheckIsEdit;
-    const data    = _pendingFileCheckData;
-    _pendingFileCheckData = null;
-
-    // Vẫn chạy fuzzy check tên (nếu Add)
-    if (!wasEdit) {
-      const fuzzyRes = await call('sangkien:fuzzyCheck', data);
-      if (fuzzyRes.ok && fuzzyRes.data.shouldWarn) {
-        pendingSaveData = data;
-        showFuzzyWarningModal(fuzzyRes.data.matches);
-        return;
-      }
-    }
-    await executeSave(data, wasEdit);
-  }
-}
-
 // Chọn file khác — đóng modal, user tự chọn lại
 function chooseOtherFile() {
   closeFileDuplicateModal();
   _pendingFileCheckData = null;
+  _pendingFileCheckSkipSimhash = false;
   showToast('Vui lòng chọn file khác cho mục bị trùng', 'warn');
 }
 
@@ -572,47 +682,78 @@ function closeFuzzyWarningModal() {
 
 const FIELD_LABELS = {
   file_thuyet_minh: 'Thuyết minh',
-  file_quyet_dinh:  'Quyết định',
-  file_anh:         'Hình ảnh',
-  file_ban_ve:      'Bản vẽ',
-  file_hieu_qua:    'Hiệu quả',
+  file_quyet_dinh: 'Quyết định',
+  file_anh: 'Hình ảnh',
+  file_ban_ve: 'Bản vẽ',
+  file_hieu_qua: 'Hiệu quả',
 };
 
 const LEVEL_CONFIG = {
-  exact:     { label: 'TRÙNG 100%',    color: '#e74c3c', icon: 'fa-times-circle' },
-  high:      { label: 'TRÙNG CAO',     color: '#e67e22', icon: 'fa-exclamation-triangle' },
-  name_only: { label: 'TRÙNG TÊN',     color: '#f39c12', icon: 'fa-info-circle' },
+  exact_block: { label: 'TRÙNG 100%', color: '#e74c3c', icon: 'fa-times-circle' },
+  chunk_block: { label: 'ĐẠO VĂN NẶNG', color: '#c0392b', icon: 'fa-ban' },
+  simhash_warning: { label: 'NGHI NGỜ COPY', color: '#e67e22', icon: 'fa-exclamation-triangle' },
+  chunk_warning: { label: 'TRÙNG NỘI DUNG', color: '#e67e22', icon: 'fa-exclamation-triangle' },
+  name_only: { label: 'TRÙNG TÊN FILE', color: '#f39c12', icon: 'fa-info-circle' },
+  // backward compat
+  exact: { label: 'TRÙNG 100%', color: '#e74c3c', icon: 'fa-times-circle' },
+  high: { label: 'TRÙNG CAO', color: '#e67e22', icon: 'fa-exclamation-triangle' },
 };
 
 function showFileDuplicateModal(results) {
   const overlay = document.getElementById('file-duplicate-modal');
   if (!overlay) {
-    // Tạo modal động nếu chưa có trong HTML
     _createFileDuplicateModal();
   }
 
   const body = document.getElementById('file-dup-body');
   if (!body) return;
 
+  let hasBlock = false;
+
   body.innerHTML = results.map(res => {
-    const lvl    = LEVEL_CONFIG[res.level] || LEVEL_CONFIG.name_only;
+    const lvl = LEVEL_CONFIG[res.level] || LEVEL_CONFIG.name_only;
     const fLabel = FIELD_LABELS[res.fieldName] || res.fieldName;
 
-    const matchRows = res.matches.map(m => `
+    if (res.level === 'exact_block' || res.level === 'chunk_block' || res.level === 'exact') {
+      hasBlock = true;
+    }
+
+    const matchRows = res.matches.map(m => {
+      let highlightHtml = '';
+      if (m.newHighlightText && m.oldHighlightText) {
+        highlightHtml = `
+          <div class="fdup-split-view" style="display:flex; gap:10px; margin-top:8px; font-size:12px; background:#f8f9fa; padding:8px; border-radius:4px; border:1px solid #ddd;">
+            <div style="flex:1;">
+              <strong style="color:var(--primary); display:block; margin-bottom:4px">Đoạn text file mới:</strong>
+              <div style="background:#fff3cd; padding:4px;">${m.newHighlightText}</div>
+            </div>
+            <div style="flex:1;">
+              <strong style="color:var(--primary); display:block; margin-bottom:4px">Đoạn text file cũ:</strong>
+              <div style="background:#fff3cd; padding:4px;">${m.oldHighlightText}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
       <div class="fdup-match-row">
-        <div class="fdup-match-name">
-          <i class="fas fa-file-alt"></i>
-          <span>${m.fileName}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="fdup-match-name">
+            <i class="fas fa-file-alt"></i>
+            <span>${m.fileName}</span>
+          </div>
+          <div class="fdup-match-score" style="color:${lvl.color}">
+            <strong>${m.score}%</strong>
+          </div>
         </div>
         <div class="fdup-match-sk">
           <i class="fas fa-folder"></i>
           <span>${m.sangKienTen || '—'}</span>
         </div>
-        <div class="fdup-match-score" style="color:${lvl.color}">
-          <strong>${m.score}%</strong>
-        </div>
-        <div class="fdup-match-detail">${m.detail || ''}</div>
-      </div>`).join('');
+        <div class="fdup-match-detail" style="margin-top:4px;">${m.detail || ''}</div>
+        ${highlightHtml}
+      </div>`;
+    }).join('');
 
     return `
       <div class="fdup-section">
@@ -626,6 +767,27 @@ function showFileDuplicateModal(results) {
       </div>`;
   }).join('');
 
+  // Xử lý Rule Engine UI: BLOCK vs WARNING
+  const btnContinue = document.getElementById('btn-continue-save');
+  const checkboxConfirmContainer = document.getElementById('fdup-confirm-container');
+  const noticeText = document.getElementById('fdup-notice-text');
+
+  if (hasBlock) {
+    // ❌ BLOCK cứng — không cho lưu
+    btnContinue.style.display = 'none';
+    checkboxConfirmContainer.style.display = 'none';
+    noticeText.innerHTML = '<i class="fas fa-ban" style="color:#e74c3c"></i> Hệ thống phát hiện sao chép nghiêm trọng (SHA-256 trùng 100% hoặc đoạn văn giống ≥90%). <strong>KHÔNG THỂ LƯU FILE NÀY.</strong> Vui lòng chọn file khác.';
+    noticeText.style.color = '#e74c3c';
+  } else {
+    // ⚠️ WARNING — cho phép lưu sau khi xác nhận
+    btnContinue.style.display = 'block';
+    btnContinue.disabled = true; // Phải tích checkbox mới cho đi tiếp
+    checkboxConfirmContainer.style.display = 'block';
+    document.getElementById('fdup-confirm-check').checked = false;
+    noticeText.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#e67e22"></i> Phát hiện nội dung có nguy cơ trùng lặp (SimHash ≥80% hoặc ≥2 đoạn văn giống nhau ≥80%). Cần xác nhận trách nhiệm trước khi lưu.';
+    noticeText.style.color = '#e67e22';
+  }
+
   document.getElementById('file-duplicate-modal').classList.add('open');
 }
 
@@ -634,30 +796,39 @@ function closeFileDuplicateModal() {
   if (overlay) overlay.classList.remove('open');
 }
 
+function toggleFdupConfirm() {
+  const cb = document.getElementById('fdup-confirm-check');
+  const btn = document.getElementById('btn-continue-save');
+  if (btn) btn.disabled = !cb.checked;
+}
+
 /** Tạo modal động nếu chưa có trong HTML */
 function _createFileDuplicateModal() {
   const div = document.createElement('div');
-  div.id        = 'file-duplicate-modal';
+  div.id = 'file-duplicate-modal';
   div.className = 'modal-overlay';
   div.innerHTML = `
-    <div class="modal fdup-modal">
+    <div class="modal fdup-modal" style="width: 800px; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-header">
-        <h2><i class="fas fa-exclamation-triangle" style="color:#e67e22;margin-right:8px"></i>Phát hiện file trùng</h2>
+        <h2><i class="fas fa-shield-alt" style="color:#e67e22;margin-right:8px"></i>Hệ Thống Kiểm Tra Trùng Nội Dung</h2>
         <button class="modal-close" onclick="closeFileDuplicateModal()">
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="modal-body" id="file-dup-body"></div>
-      <div class="fdup-footer modal-footer">
-        <div class="fdup-notice">
-          <i class="fas fa-info-circle"></i>
-          Hệ thống phát hiện file có thể trùng. Bạn có muốn tiếp tục lưu không?
+      <div class="modal-body" id="file-dup-body" style="overflow-y:auto; flex:1; padding: 16px;"></div>
+      <div class="fdup-footer modal-footer" style="display:flex; flex-direction:column; gap:12px; border-top:1px solid #ddd; padding-top:16px;">
+        <div class="fdup-notice" id="fdup-notice-text" style="font-weight:bold;">
+          <!-- JS sẽ điền thông báo -->
         </div>
-        <div class="fdup-actions">
-          <button class="btn-cancel" onclick="chooseOtherFile()">
+        <div id="fdup-confirm-container" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="fdup-confirm-check" onchange="toggleFdupConfirm()" style="width:16px; height:16px; cursor:pointer;" />
+          <label for="fdup-confirm-check" style="cursor:pointer; font-size:13px; color:#555;">Tôi xác nhận các rủi ro trên và chịu trách nhiệm khi lưu file này.</label>
+        </div>
+        <div class="fdup-actions" style="display:flex; justify-content:flex-end; gap:10px;">
+          <button class="btn-cancel" onclick="chooseOtherFile()" style="padding:8px 16px;">
             <i class="fas fa-redo"></i> Chọn file khác
           </button>
-          <button class="btn-save fdup-btn-continue" onclick="confirmSaveWithDuplicateFiles()">
+          <button id="btn-continue-save" class="btn-save fdup-btn-continue" onclick="confirmSaveWithDuplicateFiles()" style="padding:8px 16px;">
             <i class="fas fa-save"></i> Vẫn tiếp tục lưu
           </button>
         </div>

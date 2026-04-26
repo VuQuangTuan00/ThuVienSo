@@ -81,6 +81,41 @@ function initTables() {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    -- ==========================================
+    --  SCHEMA CHỐNG TRÙNG LẶP (PLAGIARISM)
+    -- ==========================================
+    
+    -- Bảng files (File-level)
+    CREATE TABLE IF NOT EXISTS files (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sang_kien_id INTEGER NOT NULL REFERENCES sang_kien(id) ON DELETE CASCADE,
+        file_name TEXT NOT NULL,
+        file_type TEXT,
+        sha256_hash TEXT NOT NULL,
+        simhash TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_files_sha256 ON files(sha256_hash);
+    CREATE INDEX IF NOT EXISTS idx_files_simhash ON files(simhash);
+
+    -- Bảng chunks (Chunk-level)
+    CREATE TABLE IF NOT EXISTS chunks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+        chunk_index INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        start_char INTEGER,
+        end_char INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_chunks_file_id ON chunks(file_id);
+
+    -- Bảng embeddings (Vector-level)
+    CREATE TABLE IF NOT EXISTS embeddings (
+        chunk_id INTEGER PRIMARY KEY REFERENCES chunks(id) ON DELETE CASCADE,
+        vector BLOB NOT NULL
+    ) WITHOUT ROWID;
+
   `);
 
   // Tạo mật khẩu admin mặc định nếu chưa có

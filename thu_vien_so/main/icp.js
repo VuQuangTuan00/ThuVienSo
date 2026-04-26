@@ -22,13 +22,31 @@ function registerIPC() {
   });
 
   ipcMain.handle('sangkien:add', (_, data) => {
-    try { return { ok:true, id: db.addSangKien(data) }; }
-    catch(e) { return { ok:false, error: e.message }; }
+    try { 
+      const id = db.addSangKien(data);
+      // Gọi Anti-Plagiarism Engine để index files
+      const { indexFilesToDb } = require('./file_check');
+      const FILE_DIR = path.join(app.getPath('userData'), 'files');
+      indexFilesToDb(id, data, FILE_DIR);
+      return { ok:true, id }; 
+    } catch(e) { 
+      console.error('[sangkien:add] Lỗi:', e);
+      return { ok:false, error: e.message }; 
+    }
   });
 
   ipcMain.handle('sangkien:update', (_, { id, data }) => {
-    try { db.updateSangKien(id, data); return { ok:true }; }
-    catch(e) { return { ok:false, error: e.message }; }
+    try { 
+      db.updateSangKien(id, data); 
+      // Gọi Anti-Plagiarism Engine để re-index files
+      const { indexFilesToDb } = require('./file_check');
+      const FILE_DIR = path.join(app.getPath('userData'), 'files');
+      indexFilesToDb(id, data, FILE_DIR);
+      return { ok:true }; 
+    } catch(e) { 
+      console.error('[sangkien:update] Lỗi:', e);
+      return { ok:false, error: e.message }; 
+    }
   });
 
   ipcMain.handle('sangkien:delete', (_, id) => {
@@ -60,7 +78,7 @@ function registerIPC() {
    * Main Process trả về:
    *   { ok, data: { hasWarning, results: [...] } }
    */
-  ipcMain.handle('file:checkDuplicate', (_, { newFileMap, oldFileMap, excludeId }) => {
+  ipcMain.handle('file:checkDuplicate', (_, { newFileMap, oldFileMap, excludeId, skipSimhashWarning }) => {
     try {
       const FILE_DIR    = path.join(app.getPath('userData'), 'files');
       const allSangKien = db.getAllSangKien();
@@ -69,7 +87,8 @@ function registerIPC() {
         oldFileMap  || null,
         FILE_DIR,
         allSangKien,
-        excludeId   || null
+        excludeId   || null,
+        skipSimhashWarning || false
       );
       return { ok: true, data: result };
     } catch (e) {

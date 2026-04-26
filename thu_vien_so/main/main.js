@@ -1,7 +1,7 @@
 // File: src/main/main.js
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
-const fs   = require('fs');
+const fs = require('fs');
 const { registerIPC } = require('./icp');
 
 // ══════════════════════════════════════
@@ -28,10 +28,10 @@ app.commandLine.appendSwitch('disable-web-security');
 // Tạo đường dẫn đích không trùng tên — giống Windows
 // VD: bao-cao.pdf → bao-cao (1).pdf → bao-cao (2).pdf
 function getUniqueFilePath(originalName) {
-  const ext      = path.extname(originalName);
+  const ext = path.extname(originalName);
   const baseName = path.basename(originalName, ext);
-  let   destPath = path.join(FILE_DIR, originalName);
-  let   counter  = 1;
+  let destPath = path.join(FILE_DIR, originalName);
+  let counter = 1;
 
   while (fs.existsSync(destPath)) {
     // Kiểm tra nếu cùng 1 file thì không cần đổi tên
@@ -51,13 +51,13 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
-    title: 'Thư Viện Số Sáng Kiến – Lữ Đoàn 279', 
-    icon: path.join(__dirname, '../../assets/icon.ico'),
+    title: 'Thư Viện Số Sáng Kiến – Lữ Đoàn 279',
+    icon: path.join(__dirname, '../../logo-binh-chung-cong-binh.png'),
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
       webSecurity: false,
-      // devTools: true
+      devTools: true
     },
     autoHideMenuBar: true
   });
@@ -79,11 +79,11 @@ function setupHandlers() {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
-        { name: 'Tất cả tài liệu', extensions: ['pdf','doc','docx','jpg','jpeg','png','gif','dwg','xlsx','xls','csv','mp4','avi','mkv'] },
-        { name: 'PDF',             extensions: ['pdf'] },
-        { name: 'Ảnh',            extensions: ['jpg','jpeg','png','gif'] },
-        { name: 'Excel',           extensions: ['xlsx','xls','csv'] },
-        { name: 'Video',           extensions: ['mp4','avi','mkv','mov'] },
+        { name: 'Tất cả tài liệu', extensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'dwg', 'xlsx', 'xls', 'csv', 'mp4', 'avi', 'mkv'] },
+        { name: 'PDF', extensions: ['pdf'] },
+        { name: 'Ảnh', extensions: ['jpg', 'jpeg', 'png', 'gif'] },
+        { name: 'Excel', extensions: ['xlsx', 'xls', 'csv'] },
+        { name: 'Video', extensions: ['mp4', 'avi', 'mkv', 'mov'] },
       ]
     });
 
@@ -92,15 +92,15 @@ function setupHandlers() {
     }
 
     const sourcePath = result.filePaths[0];
-    const destPath   = getUniqueFilePath(path.basename(sourcePath));
-    const fileName   = path.basename(destPath); // tên file sau khi xử lý trùng
+    const destPath = getUniqueFilePath(path.basename(sourcePath));
+    const fileName = path.basename(destPath); // tên file sau khi xử lý trùng
 
     try {
       fs.copyFileSync(sourcePath, destPath);
       console.log(`[pick-and-copy] ${path.basename(sourcePath)} → ${fileName}`);
-      // Chỉ trả về TÊN FILE (không phải full path) để lưu vào DB
-      // Khi mở: ghép FILE_DIR + fileName
-      return { ok: true, fileName, filePath: destPath };
+      // Trả về tên file, đường dẫn file sau copy và sourcePath gốc
+      // filePath dùng để xóa nếu renderer phát hiện trùng nội dung
+      return { ok: true, fileName, filePath: destPath, sourcePath };
     } catch (err) {
       console.error('[pick-and-copy] Lỗi:', err);
       return { ok: false, error: err.message };
@@ -155,19 +155,6 @@ function setupHandlers() {
     }
   });
 
-
-  ipcMain.handle('admin:close-window', (event) => {
-  try {
-    // Lấy cửa sổ đang gửi IPC (chính là cửa sổ admin)
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (win) win.close();
-
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
-});
-
   // ── Mở link ngoài (video, web) ──
   ipcMain.handle('open-link-external', async (_, url) => {
     try {
@@ -201,5 +188,4 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
-
-});
+}); 

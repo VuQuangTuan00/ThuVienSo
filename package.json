@@ -5,11 +5,13 @@
   "build": {
     "appId": "com.lu279.thuviensangien",
     "productName": "Thư Viện Số Sáng Kiến",
-     "extraResources": [
+    "extraResources": [
       {
         "from": "db/",
         "to": "db/",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
@@ -29,14 +31,12 @@
       "shortcutName": "Thư Viện Số"
     }
   },
-  
   "scripts": {
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rimraf dist build",
     "build": "npm run clean && electron-builder --win"
   },
-  
   "author": "",
   "license": "ISC",
   "description": "",
@@ -46,7 +46,7 @@
     "rimraf": "^6.1.3"
   },
   "dependencies": {
-    "better-sqlite3": "^12.9.0"
+    "better-sqlite3": "^12.9.0",
+    "crypto-js": "^4.2.0"
   }
-  
 }
