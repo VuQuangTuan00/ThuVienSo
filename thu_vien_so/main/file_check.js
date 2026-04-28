@@ -296,7 +296,22 @@ function checkOneFile(newFilePath, FILE_DIR, excludeId = null, skipSimhashWarnin
     candQuery += ' WHERE f.sang_kien_id != ?';
     candParams.push(excludeId);
   }
-  const allFilesDb = db.prepare(candQuery).all(...candParams);
+  let allFilesDb = db.prepare(candQuery).all(...candParams);
+
+  // ── Fallback: scan filesystem khi DB chưa index ──
+  // Trường hợp: file đã copy vào userData/files nhưng chưa có entry trong bảng files
+  if (allFilesDb.length === 0 && FILE_DIR && fs.existsSync(FILE_DIR)) {
+    console.log('[file_check] DB không có index — scan filesystem:', FILE_DIR);
+    const fsFiles = _scanFilesystemFallback(newFilePath, FILE_DIR);
+    // Kết quả từ filesystem không có sk_id/sk_ten → dùng 'unknown'
+    allFilesDb = fsFiles.map((f, i) => ({
+      file_id:  -(i + 1),  // ID âm để phân biệt với DB
+      file_name: f.name,
+      simhash:   f.simhash,
+      sk_id:     0,
+      sk_ten:    '(Chưa phân loại)',
+    }));
+  }
 
   const simhashWarnings    = [];
   const candidatesForChunk = [];
@@ -413,6 +428,29 @@ function checkOneFile(newFilePath, FILE_DIR, excludeId = null, skipSimhashWarnin
   return result; // level 'none' → ACCEPT
 }
 
+
+function _scanFilesystemFallback(newFilePath, FILE_DIR) {
+  const results = [];
+  const newBase = path.basename(newFilePath).toLowerCase();
+  try {
+    const entries = fs.readdirSync(FILE_DIR);
+    for (const entry of entries) {
+      const full = path.join(FILE_DIR, entry);
+      try {
+        if (!fs.statSync(full).isFile()) continue;
+      } catch { continue; }
+      if (entry.toLowerCase() === newBase) continue;
+      const rawText  = extractTextContent(full);
+      const normText = rawText ? normalizeText(rawText) : '';
+      const simhash  = normText.length >= 50 ? generateSimHash(normText) : 0;
+      results.push({ name: entry, path: full, simhash: simhash.toString() });
+    }
+  } catch (e) {
+    console.warn('[file_check] _scanFilesystemFallback error:', e.message);
+  }
+  return results;
+}
+
 // ══════════════════════════════════════
 //  5. checkAllFiles
 // ══════════════════════════════════════
@@ -514,6 +552,7 @@ function indexFilesToDb(sangKienId, fileMap, FILE_DIR) {
 module.exports = {
   checkAllFiles,
   indexFilesToDb,
+  _scanFilesystemFallback,
   // Extra exports cho unit-test
   extractTextContent,
   normalizeText,
