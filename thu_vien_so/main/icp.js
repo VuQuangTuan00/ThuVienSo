@@ -1,6 +1,7 @@
 // File: src/main/ipc.js
 const { ipcMain, BrowserWindow, app } = require('electron');
 const path = require('path');
+const fs   = require('fs');
 const db   = require('../renderer/database');
 const { fuzzyCheckNewSangKien } = require('./fuzzy');
 const { checkAllFiles }         = require('./file_check');
@@ -149,6 +150,7 @@ function registerIPC() {
   ipcMain.on('app:quit', () => {
     require('electron').app.quit();
   });
+
 
   console.log('[IPC] Đã đăng ký tất cả IPC handlers');
 }
