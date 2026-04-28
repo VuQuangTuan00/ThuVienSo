@@ -108,12 +108,30 @@ function setupHandlers() {
   });
 
   // ── Mở file đính kèm ──
+
+//   ipcMain.handle('open-file', async () => {
+//   const { canceled, filePaths } = await dialog.showOpenDialog({
+//     properties: ['openFile'],
+//     filters: [
+//       { name: 'Documents', extensions: ['pdf'] }
+//     ]
+//   });
+
+//   if (canceled) return null;
+//   return filePaths[0];
+// });
   ipcMain.handle('open-file', async (_, fileName) => {
     try {
       if (!fileName) {
         return { ok: false, error: 'Tên file trống' };
       }
-
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [
+          { name: 'Documents', extensions: ['pdf'] }
+        ]
+      });
+      
       const fullPath = path.normalize(
         path.isAbsolute(fileName)
           ? fileName
