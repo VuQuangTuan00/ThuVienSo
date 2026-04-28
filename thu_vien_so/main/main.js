@@ -74,8 +74,8 @@ function createWindow() {
 
 function setupHandlers() {
 
-  // ── Chọn file → copy → đổi tên nếu trùng ──
-  ipcMain.handle('admin:pick-and-copy', async () => {
+  // ── Chọn file (chưa copy) — trả về sourcePath để renderer check trùng trước ──
+  ipcMain.handle('admin:pick-file', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
@@ -92,18 +92,19 @@ function setupHandlers() {
       return { ok: false };
     }
 
-    const sourcePath = result.filePaths[0];
-    const destPath = getUniqueFilePath(path.basename(sourcePath));
-    const fileName = path.basename(destPath); // tên file sau khi xử lý trùng
+    return { ok: true, sourcePath: result.filePaths[0] };
+  });
 
+  // ── Copy file vào userData/files/ sau khi user xác nhận không trùng (hoặc chấp nhận) ──
+  ipcMain.handle('admin:copy-file', async (_, sourcePath) => {
+    const destPath = getUniqueFilePath(path.basename(sourcePath));
+    const fileName = path.basename(destPath);
     try {
       fs.copyFileSync(sourcePath, destPath);
-      console.log(`[pick-and-copy] ${path.basename(sourcePath)} → ${fileName}`);
-      // Trả về tên file, đường dẫn file sau copy và sourcePath gốc
-      // filePath dùng để xóa nếu renderer phát hiện trùng nội dung
-      return { ok: true, fileName, filePath: destPath, sourcePath };
+      console.log(`[copy-file] ${path.basename(sourcePath)} → ${fileName}`);
+      return { ok: true, fileName, filePath: destPath };
     } catch (err) {
-      console.error('[pick-and-copy] Lỗi:', err);
+      console.error('[copy-file] Lỗi:', err);
       return { ok: false, error: err.message };
     }
   });
