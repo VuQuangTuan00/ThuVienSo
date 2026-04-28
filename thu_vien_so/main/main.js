@@ -79,6 +79,7 @@ function setupHandlers() {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
+        // { name: 'PDF', extensions: ['pdf'] },
         { name: 'Tất cả tài liệu', extensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'dwg', 'xlsx', 'xls', 'csv', 'mp4', 'avi', 'mkv'] },
         { name: 'PDF', extensions: ['pdf'] },
         { name: 'Ảnh', extensions: ['jpg', 'jpeg', 'png', 'gif'] },
@@ -109,29 +110,11 @@ function setupHandlers() {
 
   // ── Mở file đính kèm ──
 
-//   ipcMain.handle('open-file', async () => {
-//   const { canceled, filePaths } = await dialog.showOpenDialog({
-//     properties: ['openFile'],
-//     filters: [
-//       { name: 'Documents', extensions: ['pdf'] }
-//     ]
-//   });
-
-//   if (canceled) return null;
-//   return filePaths[0];
-// });
   ipcMain.handle('open-file', async (_, fileName) => {
     try {
       if (!fileName) {
         return { ok: false, error: 'Tên file trống' };
       }
-      const { canceled, filePaths } = await dialog.showOpenDialog({
-        properties: ['openFile'],
-        filters: [
-          { name: 'Documents', extensions: ['pdf'] }
-        ]
-      });
-      
       const fullPath = path.normalize(
         path.isAbsolute(fileName)
           ? fileName
