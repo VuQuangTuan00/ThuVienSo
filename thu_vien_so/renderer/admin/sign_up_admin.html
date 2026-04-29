@@ -14,7 +14,7 @@
 ══════════════════════════════════════ -->
 <div id="screen-login" class="screen active">
   <div class="login-box">
-    <div class="login-icon"><i class="fas fa-shield-alt"></i></div>
+    <div class="login-icon"><i class="fas fa-lock"></i></div>
     <h1>Admin Panel</h1>
     <p>Thư Viện Số · Lữ Đoàn 279</p>
     <div class="login-field">
@@ -34,30 +34,40 @@
 <div id="screen-admin" class="screen">
 
   <div class="sidebar">
+    <!-- Brand -->
     <div class="sb-brand">
       <div class="star">
-        <img src="../../../assets/logo_bc_cong_binh.png">
+        <img src="../../../assets/logo_bc_cong_binh.png" alt="Logo">
       </div>
-      <h2>Admin Panel</h2>
-      <p>Lữ Đoàn 279</p>
+      <div>
+        <h2>Admin Panel</h2>
+        <p>Lữ Đoàn 279</p>
+      </div>
     </div>
+
+    <!-- Nav -->
     <div class="sb-nav">
       <div class="sb-section">Quản lý</div>
       <div class="sb-item active" onclick="showPage('dashboard',this)">
-        <i class="fas fa-chart-bar"></i> Tổng quan
+        <i class="fas fa-home"></i> Tổng quan
       </div>
       <div class="sb-item" onclick="showPage('sangkien',this)">
-        <i class="fas fa-list"></i> Sáng kiến
+        <i class="fas fa-list-ul"></i> Danh sách sáng kiến
       </div>
       <div class="sb-section">Hệ thống</div>
       <div class="sb-item" onclick="showPage('settings',this)">
-        <i class="fas fa-cog"></i> Cài đặt
+        <i class="fas fa-key"></i> Mật khẩu
+      </div>
+      <div class="sb-item" onclick="openLibrary()">
+        <i class="fas fa-arrow-left"></i> Về thư viện
       </div>
     </div>
+
+    <!-- Footer -->
     <div class="sb-footer">
-      <div class="sb-logout" onclick="doLogout()">
+      <button class="sb-logout" onclick="doLogout()">
         <i class="fas fa-sign-out-alt"></i> Đăng xuất
-      </div>
+      </button>
     </div>
   </div>
 
@@ -69,7 +79,7 @@
           <i class="fas fa-home"></i> Mở thư viện
         </button>
         <div class="topbar-badge">
-          <i class="fas fa-circle" style="color:#3a7a3a;font-size:8px"></i> ONLINE
+          <i class="fas fa-circle" style="font-size:7px"></i> Online
         </div>
       </div>
     </div>

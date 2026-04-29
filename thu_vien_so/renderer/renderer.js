@@ -107,21 +107,16 @@ async function init() {
 // ══════════════════════════════════════
 
 function updateStats() {
-  // Top bar stats
-  const setEl = (id, val) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = val;
-  };
-
-  const total   = allData.length;
-  const thammu  = allData.filter(d => d.linh_vuc === 'thammu').length;
-  const chinhri = allData.filter(d => d.linh_vuc === 'chinhri').length;
-  const hckt    = allData.filter(d => d.linh_vuc === 'hckt').length;
-
-  setEl('stat-total',  total);
-  setEl('stat-thammu', thammu);
-  setEl('stat-ct',     chinhri);
-  setEl('stat-hk',     hckt);
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const current = allData.filter(d => !d.nam || d.nam >= 2025);
+  const data    = current.length ? current : allData;
+  const tm = data.filter(d => d.linh_vuc === 'thammu').length;
+  const ct = data.filter(d => d.linh_vuc === 'chinhri').length;
+  const hk = data.filter(d => d.linh_vuc === 'hckt').length;
+  set('stat-total', data.length); set('stat-thammu', tm);
+  set('stat-ct', ct); set('stat-hk', hk);
+  // Sidebar counts
+  set('sb-cnt-thammu', tm); set('sb-cnt-chinhri', ct); set('sb-cnt-hckt', hk);
 }
 
 // ══════════════════════════════════════
@@ -135,7 +130,13 @@ function show(id) {
 }
 
 function goHome() {
+  clearSearch();
   show('screen-home');
+  document.querySelectorAll('.sb-item, .nav-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === currentTab);
+  });
+  const titleEl = document.getElementById('topbar-title');
+  if (titleEl) titleEl.textContent = (TAB_TITLES || {})[currentTab] || currentTab;
   renderItems(currentTab);
 }
 
@@ -151,11 +152,18 @@ function goAdmin() {
   }
 }
 
+const TAB_TITLES = {
+  all:'Tổng quan', thammu:'Tham mưu', chinhri:'Chính trị',
+  hckt:'Hậu cần – Kỹ thuật', compare:'So sánh theo năm', honor:'Vinh danh tác giả',
+};
+
 function switchTab(tab, el) {
+  clearSearch();
   currentTab = tab;
-  document.querySelectorAll('.nav-tab')
-    .forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sb-item, .nav-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+  const titleEl = document.getElementById('topbar-title');
+  if (titleEl) titleEl.textContent = TAB_TITLES[tab] || tab;
   renderItems(tab);
 }
 
@@ -168,7 +176,6 @@ function renderItems(tab) {
 
   if (tab === 'all') {
     container.innerHTML = `
-    
       <div class="charts-wrap">
         <div class="chart-card">
           <div class="chart-title">
@@ -734,14 +741,14 @@ function updateVideoButtonState(item) {
 function renderFilePreview(item) {
   const el = document.getElementById('d-file-preview');
   if (!el) return;
-  const bxct = "Bấm xem chi tiết";
+
   // Chỉ lưu TÊN FILE (đã lưu trong DB)
   const files = [
-    {  file: item.file_thuyet_minh },
-    {   file: item.file_quyet_dinh },
-    {     file: item.file_anh },
-    {       file: item.file_ban_ve },
-    {     file: item.file_hieu_qua }
+    { ten: 'Thuyết minh', file: item.file_thuyet_minh },
+    { ten: 'Quyết định',  file: item.file_quyet_dinh },
+    { ten: 'Hình ảnh',    file: item.file_anh },
+    { ten: 'Bản vẽ',      file: item.file_ban_ve },
+    { ten: 'Hiệu quả',    file: item.file_hieu_qua }
   ].filter(f => f.file && String(f.file).trim() !== '');
 
   if (files.length === 0) {
@@ -754,8 +761,8 @@ function renderFilePreview(item) {
     <div class="file-item" data-idx="${i}">
       <div class="fi-icon"><i class="fas fa-file-alt"></i></div>
       <div>
-        <div class="fi-name">${f.file}</div>
-        <div class="fi-sub">${bxct}</div>
+        <div class="fi-name">${f.ten}</div>
+        <div class="fi-sub">${f.file}</div>
       </div>
       <i class="fas fa-chevron-right fi-arrow"></i>
     </div>
@@ -836,18 +843,17 @@ function openHoSoModal() {
   const overlay = document.getElementById('modal-hoso');
   const body = document.getElementById('modal-hoso-body');
   const title = document.getElementById('modal-hoso-title');
-  const bxct = "Bấm xem chi tiết";
   if (!item || !overlay || !body) return;
 
   title.textContent = 'Hồ sơ — ' + item.ten;
 
   // 1. Thu thập các tệp tin từ các trường dữ liệu mới
   const files = [
-    { ten: bxct, path: item.file_thuyet_minh },
-    { ten: bxct, path: item.file_quyet_dinh },
-    { ten: bxct, path: item.file_anh },
-    { ten: bxct, path: item.file_ban_ve },
-    { ten: bxct, path: item.file_hieu_qua }
+    { ten: 'Thuyết minh', path: item.file_thuyet_minh },
+    { ten: 'Quyết định', path: item.file_quyet_dinh },
+    { ten: 'Hình ảnh sáng kiến', path: item.file_anh },
+    { ten: 'Bản vẽ kỹ thuật', path: item.file_ban_ve },
+    { ten: 'Đánh giá hiệu quả', path: item.file_hieu_qua }
   ].filter(f => f.path && String(f.path).trim() !== '');
 
   let html = '';
@@ -862,7 +868,7 @@ function openHoSoModal() {
         <div class="file-item hoso-file-item" data-idx="${files.indexOf(f)}">
           <div class="fi-icon"><i class="fas fa-file-alt"></i></div>
           <div>
-            <div class="fi-name">${escapeHtml(f.path)}</div>
+            <div class="fi-name">${escapeHtml(f.ten)}</div>
             <div class="fi-sub">Bấm để xem chi tiết</div>
           </div>
           <i class="fas fa-external-link-alt fi-arrow"></i>

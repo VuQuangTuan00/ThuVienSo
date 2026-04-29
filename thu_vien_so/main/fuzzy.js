@@ -80,6 +80,49 @@ function extractYear(dateStr) {
   return m ? m[1] : null;
 }
 
+// function fuzzyCheckNewSangKien(newData, existingList) {
+//   const results = [];
+//   const newYear = extractYear(newData.ngay_ap_dung || newData.nam);
+
+//   for (const item of existingList) {
+//     // Check same unit or same year
+//     const itemYear = extractYear(item.ngay_ap_dung);
+//     const sameYear = newYear && itemYear && newYear === itemYear;
+//     const sameUnit = newData.don_vi && item.don_vi && newData.don_vi.trim().toLowerCase() === item.don_vi.trim().toLowerCase();
+
+//     if (sameYear || sameUnit) {
+//       const score = calculateScore(newData.ten, item.ten);
+//       if (score >= 0.6) {
+//         results.push({
+//           id: item.id,
+//           ten: item.ten,
+//           score: Math.round(score * 100)
+//         });
+//       }
+//     }
+//   }
+
+// function fuzzyCheckNewSangKien(newData, existingList) {
+//   const results = [];
+//   // const newYear = extractYear(newData.ngay_ap_dung || newData.nam);
+
+//   for (const item of existingList) {
+//     // Check same unit or same year
+//     // const itemYear = extractYear(item.ngay_ap_dung);
+//     // const sameYear = newYear && itemYear && newYear === itemYear;
+//     const sameUnit = newData.don_vi && item.don_vi && newData.don_vi.trim().toLowerCase() === item.don_vi.trim().toLowerCase();
+
+//     if (sameUnit) {
+//       const score = calculateScore(newData.ten, item.ten);
+//       if (score >= 0.6) {
+//         results.push({
+//           id: item.id,
+//           ten: item.ten,
+//           score: Math.round(score * 100)
+//         });
+//       }
+//     }
+//   }
 function fuzzyCheckNewSangKien(newData, existingList) {
   const results = [];
   const newYear = extractYear(newData.ngay_ap_dung || newData.nam);

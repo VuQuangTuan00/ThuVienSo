@@ -82,7 +82,7 @@ const LINH_VUC_LIST = ['thammu', 'chinhri', 'hckt'];
 const LINH_VUC_LABEL = {
   thammu:  'Tham mưu',
   chinhri: 'Chính trị',
-  hckt:    'HC-KT',
+  hckt:    'Hậu cần - Kỹ thuật',
 };
 const LINH_VUC_COLOR = {
   thammu:  { fill: '#2c6975', light: 'rgba(44,105,117,0.75)' },

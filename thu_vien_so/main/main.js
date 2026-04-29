@@ -79,12 +79,12 @@ function setupHandlers() {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
-        // { name: 'PDF', extensions: ['pdf'] },
-        { name: 'Tất cả tài liệu', extensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'dwg', 'xlsx', 'xls', 'csv', 'mp4', 'avi', 'mkv'] },
         { name: 'PDF', extensions: ['pdf'] },
-        { name: 'Ảnh', extensions: ['jpg', 'jpeg', 'png', 'gif'] },
-        { name: 'Excel', extensions: ['xlsx', 'xls', 'csv'] },
-        { name: 'Video', extensions: ['mp4', 'avi', 'mkv', 'mov'] },
+        // { name: 'Tất cả tài liệu', extensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'dwg', 'xlsx', 'xls', 'csv', 'mp4', 'avi', 'mkv'] },
+        // { name: 'PDF', extensions: ['pdf'] },
+        // { name: 'Ảnh', extensions: ['jpg', 'jpeg', 'png', 'gif'] },
+        // { name: 'Excel', extensions: ['xlsx', 'xls', 'csv'] },
+        // { name: 'Video', extensions: ['mp4', 'avi', 'mkv', 'mov'] },
       ]
     });
 

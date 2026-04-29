@@ -196,7 +196,9 @@ function showPage(page, el) {
   document.getElementById('page-title').textContent = PAGE_TITLES[page];
 }
 
-function openLibrary() { window.location.href = '../index.html'; }
+function openLibrary() {
+   window.location.href = '../index.html'; 
+  }
 
 // ══════════════════════════════════════
 //  DASHBOARD
@@ -677,12 +679,11 @@ function showFileDuplicateModal(results) {
   const btnContinue = document.getElementById('btn-continue-save');
   const checkboxConfirmContainer = document.getElementById('fdup-confirm-container');
   const noticeText = document.getElementById('fdup-notice-text');
-
   if (hasBlockLevel) {
     // ❌ BLOCK — không thể lưu
     btnContinue.style.display        = 'none';
     checkboxConfirmContainer.style.display = 'none';
-    noticeText.innerHTML = '<i class="fas fa-times-circle" style="color:#e74c3c"></i> Phát hiện trùng lặp nghiêm trọng (SHA-256 hoặc đạo văn ≥90%). KHÔNG THỂ LƯU FILE NÀY.';
+    noticeText.innerHTML = '<i class="fas fa-times-circle" style="color:#e74c3c"></i> Phát hiện trùng lặp nghiêm trọng. KHÔNG THỂ LƯU FILE NÀY.';
     noticeText.style.color = '#e74c3c';
   } else {
     // ⚠️ WARNING — cho phép xác nhận và tiếp tục
@@ -690,8 +691,8 @@ function showFileDuplicateModal(results) {
     btnContinue.disabled             = true; // bật sau khi check checkbox
     checkboxConfirmContainer.style.display = 'block';
     document.getElementById('fdup-confirm-check').checked = false;
-    noticeText.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#e67e22"></i> Phát hiện nội dung có nguy cơ vay mượn (SimHash ≥80% hoặc ≥2 đoạn văn giống ≥80%). Cần xác nhận để tiếp tục lưu.';
-    noticeText.style.color = '#e67e22';
+    noticeText.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#e67e22"></i> Phát hiện nội dung có nguy cơ trùng nội dung. Cần xác nhận để tiếp tục lưu.';
+    noticeText.style.color = '#f19c50';
     btnContinue.innerHTML = '<i class="fas fa-check"></i> Xác nhận chọn file này';
   }
 
@@ -735,7 +736,7 @@ function _createFileDuplicateModal() {
         </div>
         <div id="fdup-confirm-container" style="display:flex; align-items:center; gap:8px;">
           <input type="checkbox" id="fdup-confirm-check" onchange="toggleFdupConfirm()" style="width:16px; height:16px; cursor:pointer;" />
-          <label for="fdup-confirm-check" style="cursor:pointer; font-size:13px; color:#555;">Tôi xác nhận các rủi ro trên và chịu trách nhiệm khi lưu file này.</label>
+          <label for="fdup-confirm-check" style="cursor:pointer; font-size:13px; color:#fff;">Tôi xác nhận các rủi ro trên và chịu trách nhiệm khi lưu file này.</label>
         </div>
         <div class="fdup-actions" style="display:flex; justify-content:flex-end; gap:10px;">
           <button class="btn-cancel" onclick="chooseOtherFile()" style="padding:8px 16px;">
