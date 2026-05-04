@@ -213,6 +213,47 @@ function toAuthorChartData(ranks) {
 }
 
 // ──────────────────────────────────────────
+//  §4  UNIT RANKING
+// ──────────────────────────────────────────
+
+/**
+ * Nhóm sáng kiến theo đơn vị, đếm theo lĩnh vực.
+ * @param {Object[]} items
+ * @returns {Array<{ don_vi, total, thammu, chinhri, hckt, items[] }>}
+ *   Đã sắp xếp giảm dần theo total.
+ */
+function groupByUnit(items) {
+  const map = {};
+  items.forEach(item => {
+    const key = (item.don_vi || 'Chưa rõ').trim();
+    if (!map[key]) {
+      map[key] = { don_vi: key, total: 0, thammu: 0, chinhri: 0, hckt: 0, items: [] };
+    }
+    map[key].total++;
+    const lv = item.linh_vuc;
+    if (lv in map[key]) map[key][lv]++;
+    map[key].items.push(item);
+  });
+  return Object.values(map).sort((a, b) => b.total - a.total);
+}
+
+/**
+ * Chuyển kết quả groupByUnit sang cấu trúc chart-ready (horizontal stacked bar).
+ * @param {ReturnType<typeof groupByUnit>} units
+ * @param {number} [topN=10]
+ */
+function toUnitChartData(units, topN = 10) {
+  const top = units.slice(0, topN);
+  return {
+    labels:  top.map(u => u.don_vi),
+    totals:  top.map(u => u.total),
+    thammu:  top.map(u => u.thammu),
+    chinhri: top.map(u => u.chinhri),
+    hckt:    top.map(u => u.hckt),
+  };
+}
+
+// ──────────────────────────────────────────
 //  Internal helpers
 // ──────────────────────────────────────────
 
@@ -234,6 +275,8 @@ const DataUtils = {
   aggregateAuthors,
   rankAuthors,
   toAuthorChartData,
+  groupByUnit,
+  toUnitChartData,
   LINH_VUC_LABEL,
   LINH_VUC_COLOR,
   LINH_VUC_LIST,

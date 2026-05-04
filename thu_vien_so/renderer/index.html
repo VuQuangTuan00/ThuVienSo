@@ -21,7 +21,7 @@
 <div id="screen-splash" class="screen" onclick="goHome()">
   <div class="splash-grid"></div>
   <a class="splash-admin" href="#" onclick="event.stopPropagation(); goAdmin()">
-    <i class="fas fa-cog"></i> Admin
+    <i class="fas fa-cog"></i> Quản Trị
   </a>
   <div class="splash-content">
     <div><img class="unit-logo splash-logo" src="../../assets/logo_bc_cong_binh.png" alt="Logo"></div>
@@ -42,7 +42,7 @@
   <div class="sidebar">
     <div class="sb-brand">
       <div class="star">
-        <img src="../../assets/logo_bc_cong_binh.png">
+        <img src="../../assets/logo_bc_cong_binh.png" width="100px">
       </div>
       <h2>Lữ Đoàn 279</h2>
       <p>"Vì Nhân Dân Quên Mình, Vì Nhân Dân Hi Sinh"</p>
@@ -55,6 +55,9 @@
       <div class="sb-item" onclick="switchTab('compare',this)">
         <i class="fas fa-chart-bar"></i> So sánh năm
       </div>
+      <div class="sb-item" onclick="switchTab('donvi',this)">
+        <i class="fas fa-sitemap"></i> Thống kê đơn vị
+      </div>
       <div class="sb-item" onclick="switchTab('honor',this)">
         <i class="fas fa-trophy"></i> Vinh danh
       </div>
@@ -63,7 +66,10 @@
       <div class="sb-item" onclick="goSplash()">
         <i class="fas fa-display"></i> Màn hình bắt đầu
       </div>
-      <div class="sb-item" onclick="switchTab('honor',this)">
+      <div class="sb-item" onclick="onclick=openHuongDan()">
+        <i class="fas fa-question-circle"></i> Hướng Dẫn 
+      </div>
+      <div class="sb-item" onclick="event.stopPropagation(); goAdmin()">
         <i class="fas fa-cog"></i> Quản Trị
       </div>
     </div>
@@ -117,7 +123,7 @@
       <i class="fas fa-flag"></i> Chính trị
     </div>
     <div class="nav-tab" onclick="switchTab('hckt',this)">
-      <i class="fas fa-wrench"></i> HC-KT
+      <i class="fas fa-wrench"></i> Hậu cần - Kỹ Thuật
     </div>
     <!-- <div class="nav-tab" onclick="switchTab('compare',this)">
       <i class="fas fa-chart-bar"></i> So sánh năm
@@ -205,6 +211,52 @@
       <button type="button" class="lib-modal-close" onclick="closeHoSoModal()"><i class="fas fa-times"></i></button>
     </div>
     <div class="lib-modal-body" id="modal-hoso-body"></div>
+  </div>
+</div>
+
+<!-- Modal: Hướng dẫn sử dụng -->
+<div class="lib-modal-overlay" id="modal-huongdan" onclick="if(event.target===this) closeHuongDan()">
+  <div class="lib-modal" style="max-width:560px;">
+    <div class="lib-modal-head">
+      <h3 style="color:#c8392b; font-size:18px; letter-spacing:1px;">
+        📖 HƯỚNG DẪN SỬ DỤNG THƯ VIỆN SỐ SÁNG KIẾN
+      </h3>
+      <button type="button" class="lib-modal-close" onclick="closeHuongDan()" aria-label="Đóng">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="lib-modal-body" style="padding:24px 28px;">
+      <div class="hd-list">
+        <div class="hd-item">
+          <span class="hd-icon">🎒</span>
+          <span>Chọn lĩnh vực tại màn hình Trang chủ.</span>
+        </div>
+        <div class="hd-item">
+          <span class="hd-icon">📁</span>
+          <span>Chọn sáng kiến cần xem.</span>
+        </div>
+        <div class="hd-item">
+          <span class="hd-icon">🎬</span>
+          <span>Nhấn <strong>VIDEO</strong> để xem giới thiệu.</span>
+        </div>
+        <div class="hd-item">
+          <span class="hd-icon">📄</span>
+          <span>Nhấn <strong>Hồ Sơ</strong> để xem thuyết minh và các file kèm theo.</span>
+        </div>
+        <div class="hd-item">
+          <span class="hd-icon">🏠</span>
+          <span>Nhấn <strong>TRANG CHỦ</strong> hoặc tên các ngành để quay lại.</span>
+        </div>
+      </div>
+      <div style="text-align:center; margin-top:24px;">
+        <button onclick="closeHuongDan()" style="
+          background:#1a6b4a; color:#fff; border:none; border-radius:50px;
+          padding:13px 36px; font-size:15px; font-weight:700;
+          letter-spacing:1px; cursor:pointer; transition:background 0.2s;">
+          BẮT ĐẦU TRẢI NGHIỆM
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 

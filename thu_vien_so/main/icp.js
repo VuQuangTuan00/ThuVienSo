@@ -99,6 +99,30 @@ function registerIPC() {
   });
 
   // ══════════════════════════════════════
+  //  GIẢI THƯỞNG & HUY CHƯƠNG
+  // ══════════════════════════════════════
+
+  ipcMain.handle('giaithuong:getAll', () => {
+    try { return { ok: true, data: db.getAllGiaiThuong() }; }
+    catch(e) { return { ok: false, error: e.message }; }
+  });
+
+  ipcMain.handle('giaithuong:add', (_, data) => {
+    try { const id = db.addGiaiThuong(data); return { ok: true, id }; }
+    catch(e) { return { ok: false, error: e.message }; }
+  });
+
+  ipcMain.handle('giaithuong:update', (_, { id, data }) => {
+    try { db.updateGiaiThuong(id, data); return { ok: true }; }
+    catch(e) { return { ok: false, error: e.message }; }
+  });
+
+  ipcMain.handle('giaithuong:delete', (_, id) => {
+    try { db.deleteGiaiThuong(id); return { ok: true }; }
+    catch(e) { return { ok: false, error: e.message }; }
+  });
+
+  // ══════════════════════════════════════
   //  ADMIN AUTH
   // ══════════════════════════════════════
 
@@ -141,6 +165,48 @@ function registerIPC() {
     adminWin.loadFile(
       path.join(__dirname, '../renderer/admin/sign_up_admin.html')
     );
+  });
+
+  // ══════════════════════════════════════
+  //  BACKUP / RESTORE
+  // ══════════════════════════════════════
+
+  const { dialog } = require('electron');
+  const { createBackup, restoreBackup, readBackupManifest, formatTimestamp } =
+    require('./backup_service');
+
+  // Xem trước manifest — dùng trước khi hỏi confirm restore
+  ipcMain.handle('backup:preview', async () => {
+    const result = await dialog.showOpenDialog({
+      title:       'Chọn file backup',
+      filters:     [{ name: 'Backup ZIP', extensions: ['zip'] }],
+      properties:  ['openFile'],
+    });
+    if (result.canceled || !result.filePaths[0]) return { ok: false, canceled: true };
+    const zipPath = result.filePaths[0];
+    const res = readBackupManifest(zipPath);
+    return { ...res, zipPath };
+  });
+
+  // Tạo backup
+  ipcMain.handle('backup:create', async (event) => {
+    const result = await dialog.showSaveDialog({
+      title:       'Lưu file backup',
+      defaultPath: `backup-${formatTimestamp()}.zip`,
+      filters:     [{ name: 'Backup ZIP', extensions: ['zip'] }],
+    });
+    if (result.canceled) return { ok: false, canceled: true };
+
+    return createBackup(result.filePath, db.db, (pct, msg) => {
+      event.sender.send('backup:progress', { pct, msg });
+    });
+  });
+
+  // Restore (zipPath đã được chọn qua backup:preview)
+  ipcMain.handle('backup:restore', async (event, zipPath) => {
+    return restoreBackup(zipPath, db, (pct, msg) => {
+      event.sender.send('backup:progress', { pct, msg });
+    });
   });
 
   // ══════════════════════════════════════

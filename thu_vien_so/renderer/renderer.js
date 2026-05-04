@@ -39,6 +39,8 @@ function mockCall(channel, ...args) {
     case 'open-link-external':
       window.open(args[0], '_blank', 'noopener,noreferrer');
       return { ok:true };
+    case 'giaithuong:getAll':
+      return { ok:true, data: window.MOCK_AWARDS || [] };
     default:
       return { ok:false, error:'Mock không hỗ trợ: ' + channel };
   }
@@ -142,6 +144,7 @@ function goHome() {
 
 function goAdmin() {
   // Mở trang admin trong cùng cửa sổ
+  window.close();
   if (isElectron) {
     const path = require('path');
     const { remote } = require('electron');
@@ -154,7 +157,8 @@ function goAdmin() {
 
 const TAB_TITLES = {
   all:'Tổng quan', thammu:'Tham mưu', chinhri:'Chính trị',
-  hckt:'Hậu cần – Kỹ thuật', compare:'So sánh theo năm', honor:'Vinh danh tác giả',
+  hckt:'Hậu cần – Kỹ thuật', compare:'So sánh theo năm',
+  honor:'Vinh danh', donvi:'Thống kê đơn vị',
 };
 
 function switchTab(tab, el) {
@@ -201,7 +205,10 @@ function renderItems(tab) {
     renderCompareView();
 
   } else if (tab === 'honor') {
-    renderHonorView();
+    renderHonorView(); // async — non-blocking
+
+  } else if (tab === 'donvi') {
+    renderUnitView();
 
   } else {
     const items = allData.filter(d => d.linh_vuc === tab);
@@ -248,7 +255,7 @@ function buildBarChart() {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  const labels = ['Tham mưu', 'Chính trị', 'HC-KT'];
+  const labels = ['Tham mưu', 'Chính trị', 'Hậu cần - Kỹ thuật'];
   const keys   = ['thammu', 'chinhri', 'hckt'];
   const values = keys.map(k => allData.filter(d => d.linh_vuc === k).length);
   const max    = Math.max(...values, 1);
@@ -740,15 +747,16 @@ function updateVideoButtonState(item) {
 
 function renderFilePreview(item) {
   const el = document.getElementById('d-file-preview');
+  const bxct = "Bấm Xem Chi Tiết"
   if (!el) return;
 
   // Chỉ lưu TÊN FILE (đã lưu trong DB)
   const files = [
-    { ten: 'Thuyết minh', file: item.file_thuyet_minh },
-    { ten: 'Quyết định',  file: item.file_quyet_dinh },
-    { ten: 'Hình ảnh',    file: item.file_anh },
-    { ten: 'Bản vẽ',      file: item.file_ban_ve },
-    { ten: 'Hiệu quả',    file: item.file_hieu_qua }
+    { ten: bxct, file: item.file_thuyet_minh },
+    { ten: bxct,  file: item.file_quyet_dinh },
+    { ten: bxct,    file: item.file_anh },
+    { ten: bxct,      file: item.file_ban_ve },
+    { ten: bxct,    file: item.file_hieu_qua }
   ].filter(f => f.file && String(f.file).trim() !== '');
 
   if (files.length === 0) {
@@ -761,8 +769,8 @@ function renderFilePreview(item) {
     <div class="file-item" data-idx="${i}">
       <div class="fi-icon"><i class="fas fa-file-alt"></i></div>
       <div>
-        <div class="fi-name">${f.ten}</div>
-        <div class="fi-sub">${f.file}</div>
+        <div class="fi-name">${f.file}</div>
+        <div class="fi-sub">${f.ten}</div>
       </div>
       <i class="fas fa-chevron-right fi-arrow"></i>
     </div>
@@ -843,17 +851,18 @@ function openHoSoModal() {
   const overlay = document.getElementById('modal-hoso');
   const body = document.getElementById('modal-hoso-body');
   const title = document.getElementById('modal-hoso-title');
+  const bxct = "Bấm Xem Chi Tiết";
   if (!item || !overlay || !body) return;
 
   title.textContent = 'Hồ sơ — ' + item.ten;
 
   // 1. Thu thập các tệp tin từ các trường dữ liệu mới
   const files = [
-    { ten: 'Thuyết minh', path: item.file_thuyet_minh },
-    { ten: 'Quyết định', path: item.file_quyet_dinh },
-    { ten: 'Hình ảnh sáng kiến', path: item.file_anh },
-    { ten: 'Bản vẽ kỹ thuật', path: item.file_ban_ve },
-    { ten: 'Đánh giá hiệu quả', path: item.file_hieu_qua }
+    { ten: bxct, path: item.file_thuyet_minh },
+    { ten: bxct, path: item.file_quyet_dinh },
+    { ten: bxct, path: item.file_anh },
+    { ten: bxct, path: item.file_ban_ve },
+    { ten: bxct, path: item.file_hieu_qua }
   ].filter(f => f.path && String(f.path).trim() !== '');
 
   let html = '';
@@ -868,8 +877,8 @@ function openHoSoModal() {
         <div class="file-item hoso-file-item" data-idx="${files.indexOf(f)}">
           <div class="fi-icon"><i class="fas fa-file-alt"></i></div>
           <div>
-            <div class="fi-name">${escapeHtml(f.ten)}</div>
-            <div class="fi-sub">Bấm để xem chi tiết</div>
+            <div class="fi-name">${escapeHtml(f.path)}</div>
+            <div class="fi-sub">${f.ten}</div>
           </div>
           <i class="fas fa-external-link-alt fi-arrow"></i>
         </div>`;
@@ -1145,13 +1154,15 @@ function renderCompareView() {
             <option value="">Tất cả lĩnh vực</option>
             <option value="thammu">Tham mưu</option>
             <option value="chinhri">Chính trị</option>
-            <option value="hckt">HC-KT</option>
+            <option value="hckt">Hậu cần - Kỹ thuật</option>
           </select>
         </div>
       </div>
+      <div id="compare-kpi-strip" class="compare-kpi-strip"></div>
       <div class="compare-chart-card">
-        <canvas id="chart-compare" height="260"></canvas>
+        <canvas id="chart-compare" height="300"></canvas>
       </div>
+      <div id="cmp-insight" class="cmp-insight-strip"></div>
       <div id="compare-year-summary" class="compare-year-summary"></div>
     </div>`;
   requestAnimationFrame(() => rebuildCompareChart());
@@ -1165,7 +1176,9 @@ function rebuildCompareChart() {
   const source  = lv ? allData.filter(d => d.linh_vuc === lv) : allData;
   const grouped = utils.groupByYearAndField(source);
   const chart   = utils.toYearCompareChartData(grouped);
+  buildKpiStrip(grouped, chart);
   buildCompareChart(chart);
+  buildInsightStrip(grouped, chart);
   buildYearSummary(grouped);
 }
 
@@ -1175,226 +1188,462 @@ function buildCompareChart({ labels, series, totals }) {
   const ctx = canvas.getContext('2d');
 
   const dpr = window.devicePixelRatio || 1;
-  const W   = canvas.offsetWidth || 560;
-  const H   = 260;
+  const W   = canvas.offsetWidth || 620;
+  const H   = 300;
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
   canvas.style.height = H + 'px';
   ctx.scale(dpr, dpr);
 
-  const padL = 48, padR = 20, padT = 44, padB = 60;
-  const chartW = W - padL - padR;
-  const chartH = H - padT - padB;
+  const STACK_COLORS = {
+    thammu:  { fill: '#c05050', light: 'rgba(192,80,80,0.72)' },
+    chinhri: { fill: '#c8a020', light: 'rgba(200,160,32,0.72)' },
+    hckt:    { fill: '#3ca050', light: 'rgba(60,160,80,0.72)' },
+  };
+  const GROWTH_COLOR = '#e67e22';
 
-  const nYears  = labels.length || 1;
-  const nSeries = series.length;
-  const groupW  = Math.floor(chartW / nYears);
-  const barW    = Math.max(16, Math.floor(groupW / (nSeries + 1) * 0.88));
-  const maxVal  = Math.max(...totals, 1);
+  const padL = 44, padR = 54, padT = 42, padB = 58;
+  const chartW   = W - padL - padR;
+  const chartH   = H - padT - padB;
+  const nYears   = labels.length || 1;
+  const barW     = Math.max(28, Math.floor(chartW / nYears * 0.54));
+  const maxTotal = Math.max(...totals, 1);
 
-  // Màu riêng biệt cho từng năm — đủ sáng, dễ phân biệt
-  const YEAR_PALETTE = [
-    { solid:'#2c6975', light:'rgba(44,105,117,0.65)',  label:'#2c6975'  },
-    { solid:'#e07b39', light:'rgba(224,123,57,0.65)',  label:'#c9651e'  },
-    { solid:'#6a3d9a', light:'rgba(106,61,154,0.65)',  label:'#5a2d88'  },
-    { solid:'#2ca06e', light:'rgba(44,160,110,0.65)',  label:'#1d8058'  },
-    { solid:'#c8a020', light:'rgba(200,160,32,0.65)',  label:'#a07c10'  },
-    { solid:'#d04060', light:'rgba(208,64,96,0.65)',   label:'#b02040'  },
-  ];
-  // Override màu series bằng YEAR_PALETTE theo index năm
-  const yearColorMap = {};
-  labels.forEach((yr, i) => {
-    yearColorMap[yr] = YEAR_PALETTE[i % YEAR_PALETTE.length];
+  // Tỉ lệ tăng trưởng: null cho năm đầu, % cho các năm sau
+  const growthRates = totals.map((t, i) =>
+    (i === 0 || totals[i - 1] === 0) ? null : ((t - totals[i - 1]) / totals[i - 1]) * 100
+  );
+  const validGrowths = growthRates.filter(g => g !== null);
+  const showGrowth   = validGrowths.length > 0;
+
+  let growthTop = 100, growthBot = -100;
+  if (showGrowth) {
+    const gMax = Math.max(...validGrowths, 0);
+    const gMin = Math.min(...validGrowths, 0);
+    const gPad = Math.max((gMax - gMin) * 0.22, 12);
+    growthTop = gMax + gPad;
+    growthBot = gMin - gPad;
+  }
+  function growthToY(g) {
+    return padT + chartH - ((g - growthBot) / (growthTop - growthBot)) * chartH;
+  }
+
+  // Xây dựng dữ liệu stacked bar
+  const barRects = labels.map((yr, yi) => {
+    const cx = padL + (yi + 0.5) * (chartW / nYears);
+    const x  = cx - barW / 2;
+    let stackBottom = padT + chartH;
+    const segments = series.map(s => {
+      const val  = s.values[yi] || 0;
+      const segH = val === 0 ? 0 : Math.max(4, (val / maxTotal) * chartH);
+      const y    = stackBottom - segH;
+      if (val > 0) stackBottom = y;
+      return { val, h: segH, y, key: s.key, label: s.label };
+    });
+    return { x, cx, segments, total: totals[yi], yr };
   });
 
-  // Lưu vị trí bar để hit-test tooltip
-  const barRects = [];
+  // Điểm trên đường tăng trưởng
+  const linePoints = labels.map((yr, yi) => {
+    const g = growthRates[yi];
+    if (g === null) return null;
+    return { cx: padL + (yi + 0.5) * (chartW / nYears), y: growthToY(g), val: g, yr };
+  });
 
-  function drawCompare(hoverKey) {
+  const tooltip = getOrCreateTooltip();
+
+  function draw(hoverYi) {
     ctx.clearRect(0, 0, W, H);
 
-    // Grid
-    const steps = Math.min(maxVal, 5);
+    // === Lưới trục trái ===
+    const steps = Math.min(maxTotal, 5);
     for (let i = 0; i <= steps; i++) {
-      const val = Math.round(maxVal / steps * i);
+      const val = Math.round(maxTotal / steps * i);
       const y   = padT + chartH - (chartH / steps * i);
-      ctx.strokeStyle = 'rgba(44,105,117,0.12)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(44,105,117,0.1)';
+      ctx.lineWidth   = 1;
       ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + chartW, y); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = '#2c6975';
-      ctx.font = 'bold 10px Oswald,sans-serif';
-      ctx.textAlign = 'right';
+      ctx.fillStyle  = '#2c6975';
+      ctx.font       = 'bold 10px Oswald,sans-serif';
+      ctx.textAlign  = 'right';
       ctx.fillText(val, padL - 6, y + 4);
     }
 
-    // Bars
-    barRects.length = 0;
-    labels.forEach((yr, yi) => {
-      const groupX = padL + groupW * yi + (groupW - barW * nSeries) / 2;
-      series.forEach((s, si) => {
-        const val  = s.values[yi] || 0;
-        const barH = val === 0 ? 0 : Math.max(4, (val / maxVal) * chartH);
-        const x    = groupX + si * barW;
-        const y    = padT + chartH - barH;
-        const key  = `${yi}-${si}`;
-        const isHov = (hoverKey === key);
+    // === Đường 0% và nhãn trục phải (tăng trưởng) ===
+    if (showGrowth) {
+      const zeroY = growthToY(0);
+      ctx.strokeStyle = 'rgba(230,126,34,0.22)';
+      ctx.lineWidth   = 1;
+      ctx.setLineDash([3, 5]);
+      ctx.beginPath(); ctx.moveTo(padL, zeroY); ctx.lineTo(padL + chartW, zeroY); ctx.stroke();
+      ctx.setLineDash([]);
+      [Math.round(growthTop * 0.7), 0, Math.round(growthBot * 0.7)].forEach(g => {
+        const y = growthToY(g);
+        ctx.fillStyle  = GROWTH_COLOR;
+        ctx.font       = 'bold 10px Oswald,sans-serif';
+        ctx.textAlign  = 'left';
+        ctx.fillText((g > 0 ? '+' : '') + g + '%', padL + chartW + 6, y + 4);
+      });
+    }
 
-        barRects.push({ x, y, w: barW - 2, h: barH, label: s.label, yr, val, key });
+    // === Stacked bars ===
+    barRects.forEach((b, yi) => {
+      const isHov = yi === hoverYi;
+      b.segments.forEach((seg, si) => {
+        if (seg.h === 0) return;
+        const isTopSeg = b.segments.slice(si + 1).every(s => s.h === 0);
+        const col = STACK_COLORS[seg.key];
+        ctx.fillStyle   = isHov ? col.fill : col.light;
+        ctx.shadowColor = isHov ? col.fill : 'transparent';
+        ctx.shadowBlur  = isHov ? 10 : 0;
 
-        // Dùng màu theo năm thay vì màu series để mỗi năm rõ ràng hơn
-        const yrColor = yearColorMap[yr] || YEAR_PALETTE[yi % YEAR_PALETTE.length];
-        ctx.shadowColor   = isHov ? yrColor.solid : 'transparent';
-        ctx.shadowBlur    = isHov ? 14 : 0;
-        const grad = ctx.createLinearGradient(x, y, x, y + barH);
-        grad.addColorStop(0, isHov ? yrColor.solid : yrColor.light);
-        grad.addColorStop(1, isHov ? yrColor.light : 'rgba(0,0,0,0.06)');
-        ctx.fillStyle = grad;
-
-        const r = Math.min(4, (barW - 2) / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + barW - 2 - r, y);
-        ctx.quadraticCurveTo(x + barW - 2, y, x + barW - 2, y + r);
-        ctx.lineTo(x + barW - 2, y + barH);
-        ctx.lineTo(x, y + barH);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
+        if (isTopSeg) {
+          const r = Math.min(5, barW / 2);
+          ctx.beginPath();
+          ctx.moveTo(b.x + r, seg.y);
+          ctx.lineTo(b.x + barW - r, seg.y);
+          ctx.quadraticCurveTo(b.x + barW, seg.y, b.x + barW, seg.y + r);
+          ctx.lineTo(b.x + barW, seg.y + seg.h);
+          ctx.lineTo(b.x, seg.y + seg.h);
+          ctx.lineTo(b.x, seg.y + r);
+          ctx.quadraticCurveTo(b.x, seg.y, b.x + r, seg.y);
+          ctx.closePath();
+        } else {
+          ctx.beginPath();
+          ctx.rect(b.x, seg.y, barW, seg.h);
+        }
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        if (val > 0) {
-          ctx.fillStyle = '#1a3a42';
-          ctx.font = 'bold 10px Oswald,sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(val, x + (barW - 2) / 2, y - 4);
+        if (seg.h >= 18 && seg.val > 0) {
+          ctx.fillStyle  = '#fff';
+          ctx.font       = 'bold 10px Oswald,sans-serif';
+          ctx.textAlign  = 'center';
+          ctx.fillText(seg.val, b.cx, seg.y + seg.h / 2 + 4);
         }
       });
 
-      // Nhãn năm
-      ctx.fillStyle = '#1a3a42';
-      ctx.font = 'bold 13px Oswald,sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(yr, padL + groupW * yi + groupW / 2, H - padB + 20);
+      // Tổng trên đầu bar
+      const topY = b.segments.reduce((mn, s) => s.h > 0 ? Math.min(mn, s.y) : mn, padT + chartH);
+      if (b.total > 0 && topY < padT + chartH) {
+        ctx.fillStyle  = '#1a3a42';
+        ctx.font       = 'bold 12px Oswald,sans-serif';
+        ctx.textAlign  = 'center';
+        ctx.fillText(b.total, b.cx, topY - 6);
+      }
 
-      // Tổng mỗi năm
-      ctx.fillStyle = 'rgba(44,105,117,0.7)';
-      ctx.font = '11px Oswald,sans-serif';
-      ctx.fillText(`(${totals[yi]})`, padL + groupW * yi + groupW / 2, H - padB + 36);
+      // Nhãn năm
+      ctx.fillStyle = isHov ? '#2c6975' : '#1a3a42';
+      ctx.font      = `bold ${isHov ? 14 : 12}px Oswald,sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(b.yr, b.cx, H - padB + 18);
     });
 
-    // Trục
-    ctx.strokeStyle = 'rgba(44,105,117,0.3)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(padL, padT);
-    ctx.lineTo(padL, padT + chartH);
-    ctx.lineTo(padL + chartW, padT + chartH);
-    ctx.stroke();
+    // === Đường tăng trưởng ===
+    if (showGrowth) {
+      const pts = linePoints.filter(Boolean);
+      if (pts.length >= 2) {
+        ctx.strokeStyle = GROWTH_COLOR;
+        ctx.lineWidth   = 2.5;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        pts.forEach((p, i) => { if (i === 0) ctx.moveTo(p.cx, p.y); else ctx.lineTo(p.cx, p.y); });
+        ctx.stroke();
+      }
+      pts.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.cx, p.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = GROWTH_COLOR; ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+        const sign = p.val >= 0 ? '+' : '';
+        ctx.fillStyle  = p.val >= 0 ? '#2c6975' : '#c05050';
+        ctx.font       = 'bold 10px Oswald,sans-serif';
+        ctx.textAlign  = 'center';
+        ctx.fillText(sign + p.val.toFixed(1) + '%', p.cx, p.y - 10);
+      });
+    }
 
-    // Legend theo năm — mỗi năm 1 màu riêng
-    labels.forEach((yr, i) => {
-      const yrC = yearColorMap[yr] || YEAR_PALETTE[i % YEAR_PALETTE.length];
-      const lx  = padL + i * 80;
-      const ly  = padT - 24;
-      // Hình chữ nhật màu bo góc
-      ctx.fillStyle = yrC.solid;
+    // === Trục ===
+    ctx.strokeStyle = 'rgba(44,105,117,0.3)';
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + chartH); ctx.lineTo(padL + chartW, padT + chartH);
+    ctx.stroke();
+    if (showGrowth) {
+      ctx.strokeStyle = 'rgba(230,126,34,0.25)';
       ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(lx, ly, 14, 10, 2);
-      else ctx.rect(lx, ly, 14, 10);
-      ctx.fill();
+      ctx.moveTo(padL + chartW, padT); ctx.lineTo(padL + chartW, padT + chartH);
+      ctx.stroke();
+    }
+
+    // === Legend ===
+    const legendItems = [
+      { label: 'Tham mưu',  color: STACK_COLORS.thammu.fill,  isLine: false },
+      { label: 'Chính trị', color: STACK_COLORS.chinhri.fill, isLine: false },
+      { label: 'Hậu cần - Kỹ thuật',     color: STACK_COLORS.hckt.fill,    isLine: false },
+      ...(showGrowth ? [{ label: 'Tăng trưởng', color: GROWTH_COLOR, isLine: true }] : []),
+    ];
+    let lx = padL;
+    const ly = padT - 26;
+    legendItems.forEach(leg => {
+      if (leg.isLine) {
+        ctx.strokeStyle = leg.color; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(lx, ly + 6); ctx.lineTo(lx + 16, ly + 6); ctx.stroke();
+        ctx.beginPath(); ctx.arc(lx + 8, ly + 6, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = leg.color; ctx.fill();
+      } else {
+        ctx.fillStyle = leg.color;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(lx, ly, 14, 10, 2); else ctx.rect(lx, ly, 14, 10);
+        ctx.fill();
+      }
       ctx.fillStyle = '#1a3a42';
-      ctx.font = 'bold 11px Oswald,sans-serif';
+      ctx.font      = 'bold 11px Oswald,sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(yr, lx + 18, ly + 9);
+      ctx.fillText(leg.label, lx + 18, ly + 9);
+      lx += ctx.measureText(leg.label).width + 34;
     });
   }
 
-  drawCompare(null);
+  draw(-1);
 
-  const tooltip = getOrCreateTooltip();
   canvas.style.cursor = 'default';
-
   canvas.onmousemove = (e) => {
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
-    const hit = barRects.find(b => mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h);
-    if (hit) {
+    let found = -1;
+    barRects.forEach((b, yi) => {
+      const topY = b.segments.reduce((mn, s) => s.h > 0 ? Math.min(mn, s.y) : mn, padT + chartH);
+      if (mx >= b.x && mx <= b.x + barW && my >= topY - 4 && my <= padT + chartH + 4) found = yi;
+    });
+    if (found >= 0) {
+      const b = barRects[found];
+      const g = growthRates[found];
+      const gHtml = g !== null
+        ? `<div style="margin-top:4px;font-size:11px;color:${g >= 0 ? '#2c6975' : '#c05050'}">
+            ${g >= 0 ? '▲' : '▼'} ${Math.abs(g).toFixed(1)}% so với năm trước
+           </div>` : '';
       tooltip.innerHTML = `
-        <div style="font-weight:800;font-size:15px;color:#2c6975;margin-bottom:2px">
-          <i class="fas fa-calendar-alt" style="margin-right:4px"></i>Năm ${hit.yr}
+        <div style="font-weight:800;font-size:14px;color:#2c6975;margin-bottom:6px">
+          <i class="fas fa-calendar-alt" style="margin-right:4px"></i>Năm ${b.yr}
         </div>
-        <div style="font-size:12px;color:#68b2a0;margin-bottom:6px;font-weight:600">${hit.label}</div>
-        <div style="font-size:26px;font-weight:900;color:#1a3a42;line-height:1">
-          ${hit.val}
-          <span style="font-size:13px;color:#68b2a0;font-weight:400"> sáng kiến</span>
-        </div>`;
+        ${b.segments.filter(s => s.val > 0).map(s => `
+          <div style="display:flex;align-items:center;gap:8px;margin:2px 0">
+            <span style="width:10px;height:10px;border-radius:2px;background:${STACK_COLORS[s.key].fill};display:inline-block;flex-shrink:0"></span>
+            <span style="font-size:12px;color:#555;flex:1">${s.label}</span>
+            <span style="font-weight:700;color:#1a3a42">${s.val}</span>
+          </div>`).join('')}
+        <div style="border-top:1px solid rgba(44,105,117,0.15);margin-top:6px;padding-top:4px;font-weight:700;font-size:13px;color:#1a3a42">
+          Tổng: ${b.total}
+        </div>${gHtml}`;
       tooltip.style.display = 'block';
       tooltip.style.left = (e.clientX + 14) + 'px';
       tooltip.style.top  = (e.clientY - 10) + 'px';
       canvas.style.cursor = 'pointer';
-      drawCompare(hit.key);
+      draw(found);
     } else {
       tooltip.style.display = 'none';
-      canvas.style.cursor = 'default';
-      drawCompare(null);
+      canvas.style.cursor   = 'default';
+      draw(-1);
     }
   };
-  canvas.onmouseleave = () => {
-    tooltip.style.display = 'none';
-    drawCompare(null);
-  };
+  canvas.onmouseleave = () => { tooltip.style.display = 'none'; draw(-1); };
+}
+
+function buildKpiStrip(grouped, { labels, totals }) {
+  const el = document.getElementById('compare-kpi-strip');
+  if (!el) return;
+  if (!labels.length) { el.innerHTML = ''; return; }
+
+  const totalAll    = totals.reduce((s, t) => s + t, 0);
+  const maxTotal    = Math.max(...totals, 0);
+  const bestYearIdx = totals.indexOf(maxTotal);
+  const bestYear    = labels[bestYearIdx] || '—';
+
+  let growthHtml = '<span style="color:var(--dim)">—</span>';
+  let growthSub  = '';
+  if (totals.length >= 2) {
+    const last = totals[totals.length - 1];
+    const prev = totals[totals.length - 2];
+    if (prev > 0) {
+      const g  = ((last - prev) / prev * 100).toFixed(1);
+      const up = Number(g) >= 0;
+      growthHtml = `<span style="color:${up ? '#2c6975' : '#c05050'};font-size:22px;font-weight:900">${up ? '▲' : '▼'} ${Math.abs(g)}%</span>`;
+      growthSub  = `${labels[labels.length - 2]} → ${labels[labels.length - 1]}`;
+    }
+  }
+
+  el.innerHTML = `
+    <div class="cmp-kpi-card">
+      <div class="cmp-kpi-icon"><i class="fas fa-layer-group"></i></div>
+      <div>
+        <div class="cmp-kpi-val">${totalAll}</div>
+        <div class="cmp-kpi-lbl">Tổng sáng kiến</div>
+      </div>
+    </div>
+    <div class="cmp-kpi-card">
+      <div class="cmp-kpi-icon"><i class="fas fa-trophy"></i></div>
+      <div>
+        <div class="cmp-kpi-val">${bestYear}</div>
+        <div class="cmp-kpi-lbl">Năm đỉnh cao</div>
+        <div class="cmp-kpi-sub">${maxTotal} sáng kiến</div>
+      </div>
+    </div>
+    <div class="cmp-kpi-card">
+      <div class="cmp-kpi-icon" style="color:#e67e22;background:rgba(230,126,34,0.1)"><i class="fas fa-chart-line"></i></div>
+      <div>
+        <div class="cmp-kpi-val" style="line-height:1.3">${growthHtml}</div>
+        <div class="cmp-kpi-lbl">Tăng trưởng gần nhất</div>
+        ${growthSub ? `<div class="cmp-kpi-sub">${growthSub}</div>` : ''}
+      </div>
+    </div>
+    <div class="cmp-kpi-card">
+      <div class="cmp-kpi-icon"><i class="fas fa-calendar-alt"></i></div>
+      <div>
+        <div class="cmp-kpi-val">${labels.length}</div>
+        <div class="cmp-kpi-lbl">Năm thống kê</div>
+        <div class="cmp-kpi-sub">${labels[0]}${labels.length > 1 ? ' – ' + labels[labels.length - 1] : ''}</div>
+      </div>
+    </div>
+  `;
+}
+
+function buildInsightStrip(grouped, { labels, totals }) {
+  const el = document.getElementById('cmp-insight');
+  if (!el) return;
+  if (!labels.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+
+  const maxTotal    = Math.max(...totals, 0);
+  const bestYearIdx = totals.indexOf(maxTotal);
+  const bestYear    = labels[bestYearIdx];
+  const insights    = [];
+
+  if (bestYear) {
+    const d   = grouped[bestYear];
+    const top = ['thammu', 'chinhri', 'hckt']
+      .map(k => ({ k, v: d[k] }))
+      .sort((a, b) => b.v - a.v)[0];
+    const lbl = { thammu: 'Tham mưu', chinhri: 'Chính trị', hckt: 'Hậu cần - Kỹ thuật' }[top.k];
+    insights.push(`Năm <strong>${bestYear}</strong> đạt đỉnh với <strong>${maxTotal}</strong> sáng kiến — dẫn đầu bởi ngành ${lbl}`);
+  }
+  if (labels.length >= 2) {
+    const last = totals[totals.length - 1];
+    const prev = totals[totals.length - 2];
+    if (prev > 0) {
+      const g   = ((last - prev) / prev * 100).toFixed(1);
+      const dir = Number(g) >= 0 ? 'tăng' : 'giảm';
+      insights.push(`${labels[labels.length - 1]}: ${dir} <strong>${Math.abs(g)}%</strong> so với ${labels[labels.length - 2]}`);
+    }
+  }
+
+  el.innerHTML = `<i class="fas fa-lightbulb"></i><span>${insights.join(' &nbsp;·&nbsp; ')}</span>`;
 }
 
 function buildYearSummary(grouped) {
   const el = document.getElementById('compare-year-summary');
   if (!el) return;
-  const utils = window.DataUtils;
   const years = Object.keys(grouped).sort();
-  el.innerHTML = years.map(yr => {
-    const d = grouped[yr];
+  el.innerHTML = years.map((yr, i) => {
+    const d    = grouped[yr];
+    const prev = i > 0 ? grouped[years[i - 1]].total : null;
+    let growthHtml = '';
+    if (prev !== null && prev > 0) {
+      const g  = ((d.total - prev) / prev * 100).toFixed(1);
+      const up = Number(g) >= 0;
+      growthHtml = `<div class="cmp-year-growth ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(g)}%</div>`;
+    }
     return `
       <div class="cmp-year-card">
         <div class="cmp-year-label">${yr}</div>
         <div class="cmp-year-total">${d.total}</div>
+        ${growthHtml}
         <div class="cmp-year-breakdown">
-          <span style="color:#2c6975">TM: ${d.thammu}</span>
-          <span style="color:#68b2a0">CT: ${d.chinhri}</span>
-          <span style="color:#4b8f8d">HK: ${d.hckt}</span>
+          <span style="color:#c05050">TM: ${d.thammu}</span>
+          <span style="color:#c8a020">CT: ${d.chinhri}</span>
+          <span style="color:#3ca050">HK: ${d.hckt}</span>
         </div>
       </div>`;
   }).join('');
 }
 
 // ══════════════════════════════════════
-//  TAB: VINH DANH TÁC GIẢ
+//  TAB: VINH DANH
 // ══════════════════════════════════════
 
-function renderHonorView() {
+// Bậc ưu tiên hiển thị — số nhỏ = cao hơn
+const AWARD_PRIORITY = {
+  'Huy chương Vàng': 1, 'Xuất sắc': 2, 'Giải nhất': 3,
+  'Giải nhì': 4, 'Giải ba': 5, 'Huy chương Bạc': 6, 'Huy chương Đồng': 7,
+};
+const AWARD_STYLE = {
+  'Huy chương Vàng': { icon:'fa-medal',  color:'#c8a020', glow:'rgba(200,160,32,.18)' },
+  'Xuất sắc':        { icon:'fa-star',   color:'#c8a020', glow:'rgba(200,160,32,.18)' },
+  'Giải nhất':       { icon:'fa-trophy', color:'#c8a020', glow:'rgba(200,160,32,.18)' },
+  'Giải nhì':        { icon:'fa-trophy', color:'#8a8a8a', glow:'rgba(138,138,138,.15)' },
+  'Giải ba':         { icon:'fa-trophy', color:'#b87333', glow:'rgba(184,115,51,.15)'  },
+  'Huy chương Bạc':  { icon:'fa-medal',  color:'#8a8a8a', glow:'rgba(138,138,138,.15)' },
+  'Huy chương Đồng': { icon:'fa-medal',  color:'#b87333', glow:'rgba(184,115,51,.15)'  },
+};
+
+async function renderHonorView() {
   const container = document.getElementById('home-content');
   const utils = window.DataUtils;
   if (!utils) { container.innerHTML = '<p>Lỗi: DataUtils chưa tải.</p>'; return; }
 
+  // ── Skeleton loading ──
+  container.innerHTML = `
+    <div class="honor-view">
+      <div class="honor-loading">
+        <i class="fas fa-circle-notch fa-spin"></i> Đang tải dữ liệu vinh danh…
+      </div>
+    </div>`;
+
+  // ── Fetch awards FRESH mỗi lần vào tab (đồng bộ với Admin) ──
+  const awRes = await call('giaithuong:getAll');
+  const awards = awRes.ok ? (awRes.data || []) : [];
+
+  // Sắp xếp: năm mới nhất → ưu tiên cao hơn → tên
+  awards.sort((a, b) =>
+    (b.nam || 0) - (a.nam || 0) ||
+    (AWARD_PRIORITY[a.loai_giai] || 99) - (AWARD_PRIORITY[b.loai_giai] || 99)
+  );
+
+  // ── Author ranking (từ allData đã load) ──
   const ranks = utils.rankAuthors(allData, 10);
   const chart  = utils.toAuthorChartData(ranks);
-
   const MEDAL = ['🥇','🥈','🥉'];
   const MEDAL_COLORS = ['#c8a020','#9e9e9e','#cd7f32'];
 
   container.innerHTML = `
     <div class="honor-view">
-      <div class="honor-header">
-        <div class="honor-header-icon"><i class="fas fa-trophy"></i></div>
-        <div class="honor-header-text">
-          <div class="honor-header-title">Bảng Vinh Danh Tác Giả</div>
-          <div class="honor-header-sub">Lữ đoàn 279 · BCCB · Top ${ranks.length} tác giả tiêu biểu</div>
+
+      <!-- ═══ PHẦN 1: GIẢI THƯỞNG & HUY CHƯƠNG ═══ -->
+      <div class="honor-section-hd">
+        <div class="honor-section-hd-icon"><i class="fas fa-award"></i></div>
+        <div>
+          <div class="honor-section-hd-title">Giải Thưởng & Huy Chương</div>
+          <div class="honor-section-hd-sub">Thành tích nổi bật của các sáng kiến · Lữ đoàn 279</div>
         </div>
       </div>
 
-      <!-- Podium top 3 -->
+      ${_buildAwardGrid(awards)}
+
+      <!-- ═══ PHẦN 2: VINH DANH TÁC GIẢ ═══ -->
+      <div class="honor-section-hd" style="margin-top:36px">
+        <div class="honor-section-hd-icon" style="background:linear-gradient(135deg,#2c6975,#68b2a0)">
+          <i class="fas fa-users"></i>
+        </div>
+        <div>
+          <div class="honor-section-hd-title">Bảng Vinh Danh Tác Giả</div>
+          <div class="honor-section-hd-sub">Top ${ranks.length} tác giả tiêu biểu theo số lượng sáng kiến</div>
+        </div>
+      </div>
+
       <div class="honor-podium">
         ${ranks.slice(0,3).map((r,i) => `
           <div class="honor-podium-card honor-podium-rank-${i+1}">
@@ -1405,8 +1654,7 @@ function renderHonorView() {
             <div class="honor-podium-name">${escapeHtml(r.ho_ten)}</div>
             <div class="honor-podium-rank">${escapeHtml(r.cap_bac||'')} ${escapeHtml(r.chuc_vu||'')}</div>
             <div class="honor-podium-count" style="color:${MEDAL_COLORS[i]}">
-              ${r.count}
-              <span class="honor-podium-count-lbl">sáng kiến</span>
+              ${r.count}<span class="honor-podium-count-lbl">sáng kiến</span>
             </div>
           </div>`).join('')}
       </div>
@@ -1445,10 +1693,70 @@ function renderHonorView() {
           <canvas id="chart-honor" height="320"></canvas>
         </div>
       </div>
+
     </div>`;
 
   requestAnimationFrame(() => buildHonorChart(ranks, chart));
 }
+
+// Mở, Đóng modal
+
+ function openHuongDan() {
+    document.getElementById('modal-huongdan').style.display = 'flex';
+  }
+  function closeHuongDan() {
+    document.getElementById('modal-huongdan').style.display = 'none';
+  }
+
+// ── Render grid giải thưởng ──
+function _buildAwardGrid(awards) {
+  if (!awards.length) {
+    return `
+      <div class="award-empty">
+        <i class="fas fa-trophy"></i>
+        <p>Chưa có giải thưởng nào được ghi nhận</p>
+      </div>`;
+  }
+
+  // Nhóm theo năm để render từng dải năm
+  const byYear = {};
+  awards.forEach(a => {
+    const yr = a.nam ? String(Math.round(a.nam)) : 'Khác';
+    if (!byYear[yr]) byYear[yr] = [];
+    byYear[yr].push(a);
+  });
+  const years = Object.keys(byYear).sort((a, b) => {
+    if (a === 'Khác') return 1;
+    if (b === 'Khác') return -1;
+    return Number(b) - Number(a);
+  });
+
+  return years.map(yr => `
+    <div class="award-year-group">
+      <div class="award-year-label"><span>${yr}</span></div>
+      <div class="award-grid">
+        ${byYear[yr].map(a => _buildAwardCard(a)).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function _buildAwardCard(a) {
+  const s = AWARD_STYLE[a.loai_giai] || { icon:'fa-award', color:'#68b2a0', glow:'rgba(104,178,160,.15)' };
+  const mo_ta = a.mo_ta ? `<div class="award-card-desc">${escapeHtml(a.mo_ta)}</div>` : '';
+  return `
+    <div class="award-card" style="--aw-color:${s.color};--aw-glow:${s.glow}">
+      <div class="award-card-top">
+        <div class="award-card-icon"><i class="fas ${s.icon}"></i></div>
+        <div class="award-card-type">${escapeHtml(a.loai_giai)}</div>
+      </div>
+      <div class="award-card-name">${escapeHtml(a.ten_giai)}</div>
+      <div class="award-card-sk">
+        <i class="fas fa-lightbulb"></i> ${escapeHtml(a.sang_kien_ten || '—')}
+      </div>
+      ${mo_ta}
+    </div>`;
+}
+
 
 function buildHonorChart(ranks, { labels, values, colors }) {
   const canvas = document.getElementById('chart-honor');
@@ -1558,6 +1866,279 @@ function buildHonorChart(ranks, { labels, values, colors }) {
     drawHonor(-1);
   };
 }
+// ══════════════════════════════════════
+//  TAB: THỐNG KÊ ĐƠN VỊ
+// ══════════════════════════════════════
+
+function renderUnitView() {
+  const container = document.getElementById('home-content');
+  const utils = window.DataUtils;
+  if (!utils) { container.innerHTML = '<p>Lỗi: DataUtils chưa tải.</p>'; return; }
+
+  const units    = utils.groupByUnit(allData);
+  const chartDat = utils.toUnitChartData(units, 10);
+
+  const topUnit  = units[0] || {};
+  const avgStr   = units.length ? (allData.length / units.length).toFixed(1) : '0';
+
+  const LV_COLOR = { thammu: '#c05050', chinhri: '#c8a020', hckt: '#3ca050' };
+  const LV_LABEL = utils.LINH_VUC_LABEL;
+
+  container.innerHTML = `
+    <div class="unit-view">
+
+      <!-- Header -->
+      <div class="honor-section-hd">
+        <div class="honor-section-hd-icon" style="background:linear-gradient(135deg,#2c6975,#4b8f8d)">
+          <i class="fas fa-sitemap"></i>
+        </div>
+        <div>
+          <div class="honor-section-hd-title">Thống Kê Theo Đơn Vị</div>
+          <div class="honor-section-hd-sub">${units.length} đơn vị · ${allData.length} sáng kiến</div>
+        </div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="unit-kpi-strip">
+        <div class="unit-kpi-card">
+          <div class="unit-kpi-icon"><i class="fas fa-building"></i></div>
+          <div class="unit-kpi-body">
+            <div class="unit-kpi-val">${units.length}</div>
+            <div class="unit-kpi-lbl">Đơn vị tham gia</div>
+          </div>
+        </div>
+        <div class="unit-kpi-card">
+          <div class="unit-kpi-icon" style="background:rgba(200,160,32,.1);color:#c8a020"><i class="fas fa-medal"></i></div>
+          <div class="unit-kpi-body">
+            <div class="unit-kpi-val" style="color:#c8a020">${escapeHtml(topUnit.don_vi || '—')}</div>
+            <div class="unit-kpi-lbl">Đơn vị dẫn đầu · ${topUnit.total || 0} sáng kiến</div>
+          </div>
+        </div>
+        <div class="unit-kpi-card">
+          <div class="unit-kpi-icon" style="background:rgba(60,160,80,.1);color:#3ca050"><i class="fas fa-layer-group"></i></div>
+          <div class="unit-kpi-body">
+            <div class="unit-kpi-val" style="color:#3ca050">${allData.length}</div>
+            <div class="unit-kpi-lbl">Tổng sáng kiến</div>
+          </div>
+        </div>
+        <div class="unit-kpi-card">
+          <div class="unit-kpi-icon" style="background:rgba(75,143,141,.1);color:#4b8f8d"><i class="fas fa-calculator"></i></div>
+          <div class="unit-kpi-body">
+            <div class="unit-kpi-val" style="color:#4b8f8d">${avgStr}</div>
+            <div class="unit-kpi-lbl">Trung bình / đơn vị</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Body: chart + table -->
+      <div class="unit-body">
+        <div class="unit-chart-wrap">
+          <div class="unit-chart-title">
+            <i class="fas fa-chart-bar" style="color:var(--gold)"></i>
+            Top ${Math.min(10, units.length)} đơn vị (theo số sáng kiến)
+          </div>
+          <div class="unit-chart-legend">
+            ${Object.entries(LV_COLOR).map(([k,c]) => `
+              <span class="unit-legend-dot" style="--c:${c}"></span>
+              <span class="unit-legend-lbl">${LV_LABEL[k]}</span>`).join('')}
+          </div>
+          <canvas id="chart-unit" height="320"></canvas>
+        </div>
+        <div class="unit-table-wrap">
+          <table class="unit-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Đơn vị</th>
+                <th title="Tham mưu" style="color:#c05050">TM</th>
+                <th title="Chính trị" style="color:#c8a020">CT</th>
+                <th title="Hậu cần - Kỹ thuật" style="color:#3ca050">HK</th>
+                <th>Tổng</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${units.map((u, i) => `
+                <tr class="unit-row${i < 3 ? ' unit-top' : ''}">
+                  <td class="unit-rank">${i + 1}</td>
+                  <td class="unit-name">${escapeHtml(u.don_vi)}</td>
+                  <td class="unit-lv" style="color:#c05050">${u.thammu || 0}</td>
+                  <td class="unit-lv" style="color:#c8a020">${u.chinhri || 0}</td>
+                  <td class="unit-lv" style="color:#3ca050">${u.hckt || 0}</td>
+                  <td>
+                    <span class="unit-total">${u.total}</span>
+                    <span class="unit-bar" style="width:${Math.round((u.total/(units[0]?.total||1))*72)}px"></span>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>`;
+
+  requestAnimationFrame(() => buildUnitChart(chartDat));
+}
+
+function buildUnitChart({ labels, totals, thammu, chinhri, hckt }) {
+  const canvas = document.getElementById('chart-unit');
+  if (!canvas) return;
+
+  const n = labels.length;
+  if (!n) return;
+
+  const ctx  = canvas.getContext('2d');
+  const dpr  = window.devicePixelRatio || 1;
+  // Đọc width THỰC từ parent để tránh offsetWidth = 0
+  const W    = canvas.parentElement?.clientWidth || canvas.offsetWidth || 480;
+  const BAR_H   = 26;
+  const BAR_GAP = 10;
+  const PAD_T   = 8;
+  const PAD_B   = 8;
+  const LBL_W   = 148;   // vùng nhãn bên trái
+  const PAD_R   = 46;    // vùng số tổng bên phải
+  const H       = PAD_T + n * (BAR_H + BAR_GAP) - BAR_GAP + PAD_B;
+
+  canvas.width        = W * dpr;
+  canvas.height       = H * dpr;
+  canvas.style.width  = '100%';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+
+  const barAreaX = LBL_W;
+  const barAreaW = W - LBL_W - PAD_R;
+  const maxV     = Math.max(...totals, 1);
+  const COLORS   = { thammu: '#c05050', chinhri: '#c8a020', hckt: '#3ca050' };
+
+  const barRects = [];
+
+  function roundRect(cx, cy, cw, ch, r) {
+    if (cw <= 0) return;
+    r = Math.min(r, cw / 2, ch / 2);
+    ctx.beginPath();
+    ctx.moveTo(cx + r, cy);
+    ctx.lineTo(cx + cw - r, cy);
+    ctx.arcTo(cx + cw, cy, cx + cw, cy + r, r);
+    ctx.lineTo(cx + cw, cy + ch - r);
+    ctx.arcTo(cx + cw, cy + ch, cx + cw - r, cy + ch, r);
+    ctx.lineTo(cx + r, cy + ch);
+    ctx.arcTo(cx, cy + ch, cx, cy + ch - r, r);
+    ctx.lineTo(cx, cy + r);
+    ctx.arcTo(cx, cy, cx + r, cy, r);
+    ctx.closePath();
+  }
+
+  function draw(hoverIdx) {
+    ctx.clearRect(0, 0, W, H);
+
+    labels.forEach((name, i) => {
+      const y      = PAD_T + i * (BAR_H + BAR_GAP);
+      const total  = totals[i];
+      const isHov  = (i === hoverIdx);
+      const totalW = Math.max(4, (total / maxV) * barAreaW);
+
+      barRects[i] = { y, h: BAR_H, total, tm: thammu[i], ct: chinhri[i], hk: hckt[i], name };
+
+      // ── Tên đơn vị (bên trái) ──
+      ctx.fillStyle = isHov ? '#1a3a42' : '#4a6a72';
+      ctx.font      = `${isHov ? 600 : 400} 12px Inter,sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      const short = name.length > 22 ? name.slice(0, 20) + '…' : name;
+      ctx.fillText(short, barAreaX - 10, y + BAR_H / 2);
+
+      // ── Track (nền xám nhạt) ──
+      ctx.fillStyle = 'rgba(44,105,117,.07)';
+      roundRect(barAreaX, y, barAreaW, BAR_H, 5);
+      ctx.fill();
+
+      // ── Stacked bar: TM → CT → HK ──
+      const segs = [
+        { val: thammu[i],  color: COLORS.thammu  },
+        { val: chinhri[i], color: COLORS.chinhri },
+        { val: hckt[i],    color: COLORS.hckt    },
+      ];
+
+      if (isHov) {
+        ctx.shadowBlur  = 10;
+        ctx.shadowColor = 'rgba(44,105,117,.3)';
+      }
+
+      let sx = barAreaX;
+      segs.forEach((seg, si) => {
+        if (!seg.val) return;
+        const bw     = (seg.val / maxV) * barAreaW;
+        const isFirst = sx === barAreaX;
+        const isLast  = (si === segs.length - 1) ||
+                        segs.slice(si + 1).every(s => !s.val);
+
+        ctx.fillStyle = isHov ? seg.color : seg.color + 'd0';
+        // Chỉ bo góc trái nếu là segment đầu, góc phải nếu là cuối
+        ctx.beginPath();
+        const r = 5;
+        const x1 = sx, x2 = sx + bw, y1 = y, y2 = y + BAR_H;
+        const tl = isFirst ? r : 0, tr = isLast ? r : 0;
+        const bl = isFirst ? r : 0, br = isLast ? r : 0;
+        ctx.moveTo(x1 + tl, y1);
+        ctx.lineTo(x2 - tr, y1);
+        ctx.arcTo(x2, y1, x2, y1 + tr, tr);
+        ctx.lineTo(x2, y2 - br);
+        ctx.arcTo(x2, y2, x2 - br, y2, br);
+        ctx.lineTo(x1 + bl, y2);
+        ctx.arcTo(x1, y2, x1, y2 - bl, bl);
+        ctx.lineTo(x1, y1 + tl);
+        ctx.arcTo(x1, y1, x1 + tl, y1, tl);
+        ctx.closePath();
+        ctx.fill();
+        sx += bw;
+      });
+
+      ctx.shadowBlur = 0;
+
+      // ── Số tổng bên phải ──
+      ctx.fillStyle    = '#1a3a42';
+      ctx.font         = `bold ${isHov ? 14 : 13}px Oswald,sans-serif`;
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(total, barAreaX + totalW + 7, y + BAR_H / 2);
+    });
+  }
+
+  draw(-1);
+
+  const tooltip = getOrCreateTooltip();
+  canvas.onmousemove = e => {
+    const rect = canvas.getBoundingClientRect();
+    const my   = e.clientY - rect.top;
+    let found  = -1;
+    barRects.forEach((b, i) => {
+      if (b && my >= b.y - 2 && my <= b.y + b.h + 2) found = i;
+    });
+    if (found >= 0) {
+      const b = barRects[found];
+      tooltip.innerHTML = `
+        <div style="font-weight:700;font-size:12px;color:#1a3a42;margin-bottom:6px;max-width:200px">${b.name}</div>
+        <div style="display:flex;gap:12px;font-size:12px">
+          <span style="color:#c05050">TM: <b>${b.tm}</b></span>
+          <span style="color:#c8a020">CT: <b>${b.ct}</b></span>
+          <span style="color:#3ca050">HK: <b>${b.hk}</b></span>
+        </div>
+        <div style="margin-top:5px;font-size:15px;font-weight:800;color:#2c6975">
+          Tổng: ${b.total}
+        </div>`;
+      tooltip.style.display = 'block';
+      tooltip.style.left    = (e.clientX + 14) + 'px';
+      tooltip.style.top     = (e.clientY - 10) + 'px';
+      canvas.style.cursor   = 'default';
+      draw(found);
+    } else {
+      tooltip.style.display = 'none';
+      canvas.style.cursor   = 'default';
+      draw(-1);
+    }
+  };
+  canvas.onmouseleave = () => { tooltip.style.display = 'none'; draw(-1); };
+}
+
 function goSplash() {
   closeVideoModal();
   closeHoSoModal();

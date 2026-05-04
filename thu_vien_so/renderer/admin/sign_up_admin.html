@@ -47,14 +47,20 @@
 
     <!-- Nav -->
     <div class="sb-nav">
-      <div class="sb-section">Quản lý</div>
+      <div class="sb-section">Phân Tích</div>
       <div class="sb-item active" onclick="showPage('dashboard',this)">
         <i class="fas fa-home"></i> Tổng quan
       </div>
       <div class="sb-item" onclick="showPage('sangkien',this)">
         <i class="fas fa-list-ul"></i> Danh sách sáng kiến
       </div>
+      <div class="sb-item" onclick="showPage('giaithuong',this);loadGiaiThuong()">
+        <i class="fas fa-trophy"></i> Giải thưởng & Huy chương
+      </div>
       <div class="sb-section">Hệ thống</div>
+      <div class="sb-item" onclick="showPage('backup',this)">
+        <i class="fas fa-database"></i> Backup / Restore
+      </div>
       <div class="sb-item" onclick="showPage('settings',this)">
         <i class="fas fa-key"></i> Mật khẩu
       </div>
@@ -139,6 +145,34 @@
       <div class="table-pager" id="sk-pager"></div>
     </div>
 
+    <!-- GIẢI THƯỞNG & HUY CHƯƠNG -->
+    <div id="page-giaithuong" class="admin-page">
+      <div class="search-bar">
+        <div style="flex:1;color:var(--text-secondary);font-size:13px;display:flex;align-items:center;gap:8px">
+          <i class="fas fa-trophy" style="color:var(--gold,#c8a020)"></i>
+          Danh sách giải thưởng và huy chương của các sáng kiến
+        </div>
+        <button class="btn-add" onclick="openAwardForm()">
+          <i class="fas fa-plus"></i> Thêm giải thưởng
+        </button>
+      </div>
+      <table class="mil-table">
+        <thead>
+          <tr>
+            <th style="width:36px">#</th>
+            <th>Sáng kiến</th>
+            <th>Tên giải thưởng</th>
+            <th style="width:180px">Loại</th>
+            <th style="width:64px">Năm</th>
+            <th style="width:130px">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="award-tbody">
+          <tr class="table-empty"><td colspan="6">Nhấn vào menu để tải dữ liệu</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- CÀI ĐẶT -->
     <div id="page-settings" class="admin-page">
       <div style="max-width:400px">
@@ -160,6 +194,46 @@
         <button class="btn-save" onclick="changePassword()" style="margin-top:8px">
           <i class="fas fa-save"></i> Lưu mật khẩu
         </button>
+      </div>
+    </div>
+
+    <!-- BACKUP / RESTORE -->
+    <div id="page-backup" class="admin-page">
+      <div class="backup-grid">
+
+        <!-- Card Backup -->
+        <div class="backup-card">
+          <div class="backup-card-icon" style="background:rgba(44,105,117,0.12); color:#2c6975">
+            <i class="fas fa-cloud-download-alt"></i>
+          </div>
+          <h3>Tạo Backup</h3>
+          <p>Xuất toàn bộ dữ liệu (database, file đính kèm, hash, embedding) ra file <strong>.zip</strong>.</p>
+          <ul class="backup-info-list">
+            <li><i class="fas fa-check-circle"></i> Sáng kiến, tác giả, giải thưởng</li>
+            <li><i class="fas fa-check-circle"></i> File PDF, ảnh, video đã upload</li>
+            <li><i class="fas fa-check-circle"></i> SHA-256, SimHash, Embedding vector</li>
+          </ul>
+          <button class="btn-backup-action" onclick="doBackup()">
+            <i class="fas fa-download"></i> Tạo Backup ngay
+          </button>
+        </div>
+
+        <!-- Card Restore -->
+        <div class="backup-card">
+          <div class="backup-card-icon" style="background:rgba(192,80,80,0.1); color:#c05050">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <h3>Phục hồi Backup</h3>
+          <p>Chọn file <strong>.zip</strong> để phục hồi. Dữ liệu hiện tại sẽ được thay thế hoàn toàn.</p>
+          <div class="backup-warn">
+            <i class="fas fa-exclamation-triangle"></i>
+            Hành động này <strong>không thể hoàn tác</strong>. Hệ thống sẽ tự tạo bản dự phòng trước khi restore.
+          </div>
+          <button class="btn-backup-action btn-restore" onclick="doRestore()">
+            <i class="fas fa-upload"></i> Chọn file & Phục hồi
+          </button>
+        </div>
+
       </div>
     </div>
 
@@ -401,6 +475,79 @@
         <i class="fas fa-check"></i> Tiếp tục lưu
       </button>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL THÊM / SỬA GIẢI THƯỞNG
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="award-modal-overlay">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h2 id="award-modal-title"><i class="fas fa-trophy" style="color:var(--gold,#c8a020);margin-right:8px"></i>Thêm giải thưởng mới</h2>
+      <button class="modal-close" onclick="closeAwardForm()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-section-title">
+        <i class="fas fa-link"></i> Liên kết sáng kiến
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="form-row">
+          <label>Sáng kiến *</label>
+          <select id="award-form-sk" style="width:100%"></select>
+        </div>
+      </div>
+
+      <div class="form-section-title" style="margin-top:16px">
+        <i class="fas fa-award"></i> Thông tin giải thưởng
+      </div>
+      <div class="form-grid">
+        <div class="form-row" style="grid-column:1/-1">
+          <label>Tên giải thưởng *</label>
+          <input type="text" id="award-form-ten"
+                 placeholder="VD: Giải nhất cấp Lữ đoàn 2026"/>
+        </div>
+        <div class="form-row">
+          <label>Loại giải *</label>
+          <select id="award-form-loai"></select>
+        </div>
+        <div class="form-row">
+          <label>Năm</label>
+          <input type="number" id="award-form-nam"
+                 placeholder="VD: 2026" min="2000" max="2100"/>
+        </div>
+        <div class="form-row" style="grid-column:1/-1">
+          <label>Mô tả thêm</label>
+          <textarea id="award-form-mota"
+                    placeholder="Ghi chú thêm về giải thưởng (tuỳ chọn)"
+                    rows="3"></textarea>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeAwardForm()">Hủy</button>
+      <button class="btn-save" onclick="saveAward()">
+        <i class="fas fa-save"></i> Lưu
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL: PROGRESS BACKUP / RESTORE
+══════════════════════════════════════ -->
+<div class="backup-progress-overlay" id="backup-progress-overlay">
+  <div class="backup-progress-box">
+    <div class="backup-progress-title" id="backup-progress-title">Đang xử lý...</div>
+    <div class="backup-progress-bar-wrap">
+      <div class="backup-progress-bar" id="backup-progress-bar"></div>
+    </div>
+    <div class="backup-progress-pct" id="backup-progress-pct">0%</div>
+    <div class="backup-progress-msg" id="backup-progress-msg">Đang chuẩn bị...</div>
   </div>
 </div>
 

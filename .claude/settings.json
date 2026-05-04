@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const fs=require\\('fs'\\);const src=fs.readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/admin/admin.js','utf8'\\);try{new Function\\(src\\);console.log\\('OK'\\)}catch\\(e\\){console.error\\('ERR:',e.message\\)}\")",
+      "Bash(node -e \"const fs=require\\('fs'\\);const src=fs.readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/renderer.js','utf8'\\);try{new Function\\(src\\);console.log\\('OK'\\)}catch\\(e\\){console.error\\('ERR:',e.message\\)}\")",
+      "Bash(dir \"c:\\\\Lữ Đoàn 279\\\\ThuVienSo\\\\thu_vien_so\")",
+      "Bash(npm install *)",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('thu_vien_so/main/backup_service.js','utf-8'\\); new Function\\(s\\); console.log\\('OK'\\)\")",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/database.js','utf-8'\\); new Function\\(s\\); console.log\\('OK'\\)\")",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/main/icp.js','utf-8'\\); new Function\\(s\\); console.log\\('OK'\\)\")",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/admin/admin.js','utf-8'\\); new Function\\(s\\); console.log\\('OK - admin.js'\\)\")",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/admin/sign_up_admin.html','utf-8'\\); console.log\\('HTML lines:', s.split\\('\\\\n'\\).length\\)\")"
+    ]
+  }
+}

@@ -90,7 +90,6 @@ function adminMockCall(channel, ...args) {
     }
 
     case 'file:checkDuplicate':
-      // Mock: không kiểm tra file thật — trả về không trùng
       return { ok: true, data: { hasWarning: false, results: [] } };
 
     case 'admin:pick-file':
@@ -99,9 +98,37 @@ function adminMockCall(channel, ...args) {
     case 'admin:copy-file':
       return { ok: false, error: 'Cần chạy Electron để copy file' };
 
+    case 'giaithuong:getAll':
+      return { ok: true, data: _mockGiaiThuongDb };
+
+    case 'giaithuong:add': {
+      const item = { ...args[0], id: _mockNext++, sang_kien_ten: _getSangKienTen(db, args[0].sang_kien_id) };
+      _mockGiaiThuongDb.push(item);
+      return { ok: true, id: item.id };
+    }
+
+    case 'giaithuong:update': {
+      const { id: uid, data: ud } = args[0];
+      const idx = _mockGiaiThuongDb.findIndex(r => r.id === uid);
+      if (idx >= 0) _mockGiaiThuongDb[idx] = { ..._mockGiaiThuongDb[idx], ...ud, id: uid, sang_kien_ten: _getSangKienTen(db, ud.sang_kien_id) };
+      return { ok: true };
+    }
+
+    case 'giaithuong:delete': {
+      const di = _mockGiaiThuongDb.findIndex(r => r.id === args[0]);
+      if (di >= 0) _mockGiaiThuongDb.splice(di, 1);
+      return { ok: true };
+    }
+
     default:
       return { ok: false, error: 'Mock không hỗ trợ: ' + channel };
   }
+}
+
+let _mockGiaiThuongDb = [];
+function _getSangKienTen(db, id) {
+  const r = db.find(d => d.id === Number(id));
+  return r ? r.ten : '';
 }
 
 // ── State ──
@@ -186,7 +213,7 @@ function show(id) {
   document.getElementById(id).classList.add('active');
 }
 
-const PAGE_TITLES = { dashboard: 'Tổng quan', sangkien: 'Quản lý sáng kiến', settings: 'Cài đặt' };
+const PAGE_TITLES = { dashboard: 'Tổng quan', sangkien: 'Quản lý sáng kiến', giaithuong: 'Giải thưởng & Huy chương', settings: 'Cài đặt', backup: 'Backup / Restore' };
 
 function showPage(page, el) {
   document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
@@ -856,6 +883,245 @@ function showToast(msg, type = '') {
   t._timer = setTimeout(() => { t.style.display = 'none'; }, 3000);
 }
 
+// ══════════════════════════════════════
+//  GIẢI THƯỞNG & HUY CHƯƠNG
+// ══════════════════════════════════════
+
+const LOAI_GIAI_LIST = [
+  'Xuất sắc', 'Giải nhất', 'Giải nhì', 'Giải ba',
+  'Huy chương Vàng', 'Huy chương Bạc', 'Huy chương Đồng',
+];
+
+const LOAI_GIAI_ICON = {
+  'Xuất sắc':       { icon: 'fa-star',   color: '#c8a020' },
+  'Giải nhất':      { icon: 'fa-trophy', color: '#c8a020' },
+  'Giải nhì':       { icon: 'fa-trophy', color: '#909090' },
+  'Giải ba':        { icon: 'fa-trophy', color: '#b87333' },
+  'Huy chương Vàng':{ icon: 'fa-medal',  color: '#c8a020' },
+  'Huy chương Bạc': { icon: 'fa-medal',  color: '#909090' },
+  'Huy chương Đồng':{ icon: 'fa-medal',  color: '#b87333' },
+};
+
+let awardData        = [];
+let editingAwardId   = null;
+
+async function loadGiaiThuong() {
+  const res = await call('giaithuong:getAll');
+  if (!res.ok) { showToast('Lỗi tải giải thưởng', 'error'); return; }
+  awardData = res.data || [];
+  awardData.sort((a, b) => (b.nam || 0) - (a.nam || 0));
+  renderAwardTable();
+}
+
+function renderAwardTable() {
+  const tbody = document.getElementById('award-tbody');
+  if (!tbody) return;
+  if (!awardData.length) {
+    tbody.innerHTML = `<tr class="table-empty"><td colspan="6">Chưa có giải thưởng nào</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = awardData.map((r, i) => {
+    const cfg = LOAI_GIAI_ICON[r.loai_giai] || { icon: 'fa-award', color: '#68b2a0' };
+    return `
+      <tr>
+        <td style="color:var(--dim);font-family:var(--mono);font-size:11px">${i + 1}</td>
+        <td style="max-width:220px">${r.sang_kien_ten || '—'}</td>
+        <td>${r.ten_giai}</td>
+        <td>
+          <span class="award-badge" style="--badge-color:${cfg.color}">
+            <i class="fas ${cfg.icon}"></i> ${r.loai_giai}
+          </span>
+        </td>
+        <td style="color:var(--dim);font-family:var(--mono)">${r.nam || '—'}</td>
+        <td>
+          <div class="tbl-actions">
+            <button class="tbl-btn edit" onclick="openAwardForm(${r.id})">
+              <i class="fas fa-edit"></i> Sửa
+            </button>
+            <button class="tbl-btn del" onclick="deleteAward(${r.id})">
+              <i class="fas fa-trash"></i> Xóa
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function openAwardForm(id = null) {
+  editingAwardId = id != null ? Number(id) : null;
+
+  // Nạp danh sách sáng kiến vào select
+  const skRes = await call('sangkien:getAll');
+  const skList = skRes.ok ? skRes.data : allData;
+  const skSelect = document.getElementById('award-form-sk');
+  skSelect.innerHTML = skList.map(s =>
+    `<option value="${s.id}">${s.ten}</option>`
+  ).join('');
+
+  const loaiSelect = document.getElementById('award-form-loai');
+  loaiSelect.innerHTML = LOAI_GIAI_LIST.map(l =>
+    `<option value="${l}">${l}</option>`
+  ).join('');
+
+  const title = document.getElementById('award-modal-title');
+  title.textContent = editingAwardId != null ? 'Chỉnh sửa giải thưởng' : 'Thêm giải thưởng mới';
+
+  if (editingAwardId != null) {
+    const item = awardData.find(r => r.id === editingAwardId);
+    if (!item) return;
+    skSelect.value = item.sang_kien_id;
+    loaiSelect.value = item.loai_giai;
+    document.getElementById('award-form-nam').value   = item.nam   || '';
+    document.getElementById('award-form-ten').value   = item.ten_giai;
+    document.getElementById('award-form-mota').value  = item.mo_ta || '';
+  } else {
+    document.getElementById('award-form-nam').value  = new Date().getFullYear();
+    document.getElementById('award-form-ten').value  = '';
+    document.getElementById('award-form-mota').value = '';
+  }
+
+  document.getElementById('award-modal-overlay').classList.add('open');
+  document.getElementById('award-form-ten').focus();
+}
+
+function closeAwardForm() {
+  document.getElementById('award-modal-overlay').classList.remove('open');
+  editingAwardId = null;
+}
+
+async function saveAward() {
+  const ten   = document.getElementById('award-form-ten').value.trim();
+  const skId  = document.getElementById('award-form-sk').value;
+  const loai  = document.getElementById('award-form-loai').value;
+  if (!ten)  { showToast('Vui lòng nhập tên giải thưởng', 'error'); return; }
+  if (!skId) { showToast('Vui lòng chọn sáng kiến', 'error'); return; }
+
+  const data = {
+    sang_kien_id: Number(skId),
+    ten_giai:     ten,
+    loai_giai:    loai,
+    nam:          Number(document.getElementById('award-form-nam').value) || null,
+    mo_ta:        document.getElementById('award-form-mota').value.trim(),
+  };
+
+  const wasEdit = editingAwardId != null;
+  const res = wasEdit
+    ? await call('giaithuong:update', { id: editingAwardId, data })
+    : await call('giaithuong:add', data);
+
+  if (res.ok) {
+    closeAwardForm();
+    await loadGiaiThuong();
+    showToast(wasEdit ? 'Đã cập nhật giải thưởng' : 'Đã thêm giải thưởng mới', 'success');
+  } else {
+    showToast('Lỗi: ' + res.error, 'error');
+  }
+}
+
+async function deleteAward(id) {
+  const item = awardData.find(r => r.id === id);
+  if (!confirm(`Xóa giải thưởng:\n"${item?.ten_giai}"\n\nBạn có chắc không?`)) return;
+  const res = await call('giaithuong:delete', id);
+  if (res.ok) {
+    await loadGiaiThuong();
+    showToast('Đã xóa giải thưởng', 'success');
+  } else {
+    showToast('Lỗi xóa: ' + res.error, 'error');
+  }
+}
+
+// ══════════════════════════════════════
+//  BACKUP / RESTORE
+// ══════════════════════════════════════
+
+function _showProgress(title) {
+  document.getElementById('backup-progress-title').textContent = title;
+  document.getElementById('backup-progress-bar').style.width   = '0%';
+  document.getElementById('backup-progress-pct').textContent   = '0%';
+  document.getElementById('backup-progress-msg').textContent   = 'Đang chuẩn bị...';
+  document.getElementById('backup-progress-overlay').classList.add('active');
+}
+
+function _updateProgress(pct, msg) {
+  document.getElementById('backup-progress-bar').style.width = pct + '%';
+  document.getElementById('backup-progress-pct').textContent = pct + '%';
+  document.getElementById('backup-progress-msg').textContent = msg;
+}
+
+function _hideProgress() {
+  document.getElementById('backup-progress-overlay').classList.remove('active');
+}
+
+async function doBackup() {
+  if (!ipc) {
+    showToast('Chức năng này chỉ hoạt động trong Electron App', 'error');
+    return;
+  }
+
+  _showProgress('Đang tạo Backup...');
+  ipc.on('backup:progress', (_, { pct, msg }) => _updateProgress(pct, msg));
+
+  const res = await call('backup:create');
+
+  ipc.removeAllListeners('backup:progress');
+  _hideProgress();
+
+  if (res.canceled) return;
+  if (res.ok) {
+    const m = res.manifest;
+    showToast(
+      `✅ Backup thành công! ${m.stats.sang_kien_count} sáng kiến · ${m.stats.file_count} files`,
+      'success'
+    );
+  } else {
+    showToast('❌ Backup thất bại: ' + res.error, 'error');
+  }
+}
+
+async function doRestore() {
+  if (!ipc) {
+    showToast('Chức năng này chỉ hoạt động trong Electron App', 'error');
+    return;
+  }
+
+  // Bước 1: Chọn file và xem trước manifest
+  const preview = await call('backup:preview');
+  if (!preview.ok) {
+    if (!preview.canceled) showToast('❌ ' + preview.error, 'error');
+    return;
+  }
+
+  const { manifest, zipPath } = preview;
+  const createdAt = manifest.created_at
+    ? new Date(manifest.created_at).toLocaleString('vi-VN')
+    : '?';
+
+  const confirmed = confirm(
+    `🗂 Backup ngày: ${createdAt}\n` +
+    `📊 ${manifest.stats.sang_kien_count} sáng kiến · ${manifest.stats.file_count} file\n\n` +
+    `⚠️ Toàn bộ dữ liệu hiện tại sẽ bị THAY THẾ.\n` +
+    `Hệ thống sẽ tự tạo bản dự phòng trước khi restore.\n\n` +
+    `Tiếp tục phục hồi?`
+  );
+  if (!confirmed) return;
+
+  // Bước 2: Restore
+  _showProgress('Đang phục hồi dữ liệu...');
+  ipc.on('backup:progress', (_, { pct, msg }) => _updateProgress(pct, msg));
+
+  const res = await call('backup:restore', zipPath);
+
+  ipc.removeAllListeners('backup:progress');
+  _hideProgress();
+
+  if (res.ok) {
+    showToast('✅ Phục hồi thành công! Đang tải lại...', 'success');
+    setTimeout(() => location.reload(), 1800);
+  } else {
+    showToast('❌ Phục hồi thất bại: ' + res.error, 'error');
+  }
+}
+
 // ── Keyboard shortcuts ──
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
@@ -863,6 +1129,7 @@ document.addEventListener('keydown', e => {
     closeVideoModal();
     closeFuzzyWarningModal();
     closeFileDuplicateModal();
+    closeAwardForm();
   }
   if (e.key === 'Enter' &&
     document.getElementById('screen-login').classList.contains('active')) {

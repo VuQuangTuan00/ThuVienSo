@@ -20,7 +20,8 @@ if (!fs.existsSync(DB_DIR)) {
 console.log('[DB] Database path:', DB_PATH);
 
 // ── Kết nối ──
-const db = new Database(DB_PATH, {
+// Dùng `let` để reopenDb() có thể gán lại sau khi Restore
+let db = new Database(DB_PATH, {
   verbose: process.env.NODE_ENV === 'development'
     ? (msg) => console.log('[SQL]', msg)
     : null
@@ -115,6 +116,18 @@ function initTables() {
         chunk_id INTEGER PRIMARY KEY REFERENCES chunks(id) ON DELETE CASCADE,
         vector BLOB NOT NULL
     ) WITHOUT ROWID;
+
+    -- Bảng giải thưởng & huy chương
+    CREATE TABLE IF NOT EXISTS giai_thuong (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      sang_kien_id  INTEGER NOT NULL REFERENCES sang_kien(id) ON DELETE CASCADE,
+      ten_giai      TEXT    NOT NULL,
+      loai_giai     TEXT    NOT NULL DEFAULT '',
+      nam           INTEGER,
+      mo_ta         TEXT    DEFAULT '',
+      created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_giai_thuong_sk ON giai_thuong(sang_kien_id);
 
   `);
 
@@ -291,6 +304,41 @@ function deleteSangKien(id) {
 }
 
 // ══════════════════════════════════════
+//  GIẢI THƯỞNG & HUY CHƯƠNG
+// ══════════════════════════════════════
+
+function getAllGiaiThuong() {
+  const rows = db.prepare(`
+    SELECT g.*, s.ten AS sang_kien_ten
+    FROM giai_thuong g
+    LEFT JOIN sang_kien s ON s.id = g.sang_kien_id
+    ORDER BY g.nam DESC, g.created_at DESC
+  `).all();
+  return rows;
+}
+
+function addGiaiThuong(data) {
+  const result = db.prepare(`
+    INSERT INTO giai_thuong (sang_kien_id, ten_giai, loai_giai, nam, mo_ta)
+    VALUES (@sang_kien_id, @ten_giai, @loai_giai, @nam, @mo_ta)
+  `).run(data);
+  return result.lastInsertRowid;
+}
+
+function updateGiaiThuong(id, data) {
+  db.prepare(`
+    UPDATE giai_thuong
+    SET sang_kien_id = @sang_kien_id, ten_giai = @ten_giai,
+        loai_giai = @loai_giai, nam = @nam, mo_ta = @mo_ta
+    WHERE id = @id
+  `).run({ ...data, id });
+}
+
+function deleteGiaiThuong(id) {
+  db.prepare('DELETE FROM giai_thuong WHERE id = ?').run(id);
+}
+
+// ══════════════════════════════════════
 //  ADMIN AUTH
 // ══════════════════════════════════════
 
@@ -320,6 +368,19 @@ function getStats() {
   };
 }
 
+// ══════════════════════════════════════
+//  REOPEN DB (dùng sau khi Restore)
+// ══════════════════════════════════════
+
+function reopenDb() {
+  try { db.close(); } catch (_) {}
+  db = new Database(DB_PATH);   // cập nhật biến module-level
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  module.exports.db = db;       // cập nhật luôn export để caller thấy instance mới
+  initTables();
+}
+
 // ── Khởi tạo khi load module ──
 initTables();
 seedMockDataIfEmpty();
@@ -330,8 +391,13 @@ module.exports = {
   addSangKien,
   updateSangKien,
   deleteSangKien,
+  getAllGiaiThuong,
+  addGiaiThuong,
+  updateGiaiThuong,
+  deleteGiaiThuong,
   checkAdminPassword,
   changeAdminPassword,
   getStats,
-  db, // export raw db nếu cần query thủ công
+  reopenDb,
+  db,
 };
