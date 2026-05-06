@@ -195,11 +195,11 @@ function getAllSangKien(linhVuc = null) {
   let items;
   if (linhVuc) {
     items = db.prepare(
-      'SELECT * FROM sang_kien WHERE linh_vuc = ? ORDER BY created_at DESC'
+      'SELECT * FROM sang_kien WHERE linh_vuc = ? ORDER BY created_at DESC, id DESC'
     ).all(linhVuc);
   } else {
     items = db.prepare(
-      'SELECT * FROM sang_kien ORDER BY linh_vuc, created_at DESC'
+      'SELECT * FROM sang_kien ORDER BY created_at DESC, id DESC'
     ).all();
   }
 
@@ -356,6 +356,21 @@ function changeAdminPassword(newPassword) {
 }
 
 // ══════════════════════════════════════
+//  CONFIG CHUNG
+// ══════════════════════════════════════
+
+function getConfigValue(key) {
+  const row = db.prepare('SELECT value FROM config WHERE key = ?').get(key);
+  return row ? row.value : null;
+}
+
+function setConfigValue(key, value) {
+  db.prepare(
+    'INSERT INTO config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+  ).run(key, value);
+}
+
+// ══════════════════════════════════════
 //  THỐNG KÊ
 // ══════════════════════════════════════
 
@@ -397,6 +412,8 @@ module.exports = {
   deleteGiaiThuong,
   checkAdminPassword,
   changeAdminPassword,
+  getConfigValue,
+  setConfigValue,
   getStats,
   reopenDb,
   db,

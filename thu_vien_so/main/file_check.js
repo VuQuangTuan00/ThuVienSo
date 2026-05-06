@@ -326,7 +326,7 @@ function checkOneFile(newFilePath, FILE_DIR, excludeId = null, skipSimhashWarnin
         sangKienTen: f.sk_ten,
         level:       'simhash_warning',
         score:       Math.round(sim * 100),
-        detail:      `Nghi ngo copy hoac chinh sua nhe (SimHash ${Math.round(sim * 100)}% >= ${Math.round(SIMHASH_WARN_THR * 100)}%)`,
+        detail:      `Nghi ngờ chỉnh sửa hoặc copy nhẹ ${Math.round(sim * 100)}% >= ${Math.round(SIMHASH_WARN_THR * 100)}%)`,
       });
     }
 

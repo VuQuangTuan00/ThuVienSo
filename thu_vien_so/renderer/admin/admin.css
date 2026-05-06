@@ -1080,3 +1080,131 @@ input, select, textarea { font-family: inherit; }
   color: #8899aa;
 }
 
+/* ══════════════════════════════════════════
+   HƯỚNG DẪN SỬ DỤNG (VIDEO TUTORIAL)
+══════════════════════════════════════════ */
+.hd-admin-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 900px;
+}
+
+/* Video box */
+.hd-video-box {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0d1117;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hd-video-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--dim, #5a6a7a);
+}
+.hd-video-empty i { font-size: 52px; opacity: .4; }
+.hd-video-empty p {
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.7;
+  opacity: .6;
+}
+
+.hd-video-player {
+  width: 100%;
+  height: 100%;
+}
+.hd-video-player iframe,
+.hd-video-player video {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Settings box */
+.hd-settings-box {
+  background: var(--card-bg, #1e2535);
+  border: 1px solid var(--border, rgba(255,255,255,.07));
+  border-radius: 14px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hd-settings-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--cream, #e8e8e8);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hd-settings-title i { color: var(--gold, #c8a020); }
+
+.hd-settings-desc {
+  font-size: 13px;
+  color: var(--dim, #5a6a7a);
+  margin: 0;
+}
+
+.hd-input-row {
+  display: flex;
+  gap: 10px;
+}
+.hd-input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  color: var(--cream, #e8e8e8);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color .18s;
+}
+.hd-input-row input:focus { border-color: var(--teal, #2c6975); }
+
+.btn-hd-save {
+  padding: 10px 22px;
+  background: #2c6975;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: background .18s;
+}
+.btn-hd-save:hover { background: #245862; }
+
+.hd-hint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.hd-hint {
+  font-size: 12.5px;
+  color: var(--dim, #5a6a7a);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hd-hint i { width: 16px; text-align: center; flex-shrink: 0; }
+

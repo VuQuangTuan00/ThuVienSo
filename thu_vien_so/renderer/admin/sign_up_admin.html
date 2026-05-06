@@ -58,6 +58,9 @@
         <i class="fas fa-trophy"></i> Giải thưởng & Huy chương
       </div>
       <div class="sb-section">Hệ thống</div>
+      <div class="sb-item" onclick="showPage('huongdan',this);loadHuongDan()">
+        <i class="fas fa-play-circle"></i> Hướng dẫn sử dụng
+      </div>
       <div class="sb-item" onclick="showPage('backup',this)">
         <i class="fas fa-database"></i> Backup / Restore
       </div>
@@ -194,6 +197,44 @@
         <button class="btn-save" onclick="changePassword()" style="margin-top:8px">
           <i class="fas fa-save"></i> Lưu mật khẩu
         </button>
+      </div>
+    </div>
+
+    <!-- HƯỚNG DẪN SỬ DỤNG -->
+    <div id="page-huongdan" class="admin-page">
+      <div class="hd-admin-wrap">
+
+        <!-- Video player -->
+        <div class="hd-video-box" id="hd-video-box">
+          <div class="hd-video-empty" id="hd-video-empty">
+            <i class="fas fa-play-circle"></i>
+            <p>Chưa có video hướng dẫn.<br>Nhập đường dẫn bên dưới để thêm.</p>
+          </div>
+          <div class="hd-video-player" id="hd-video-player" style="display:none"></div>
+        </div>
+
+        <!-- Cài đặt nguồn video -->
+        <div class="hd-settings-box">
+          <div class="hd-settings-title">
+            <i class="fas fa-cog"></i> Cài đặt video hướng dẫn
+          </div>
+          <p class="hd-settings-desc">
+            Hỗ trợ: link YouTube · link MP4 trực tiếp · tên file đã upload vào hệ thống
+          </p>
+          <div class="hd-input-row">
+            <input type="text" id="hd-video-url"
+                   placeholder="https://youtube.com/watch?v=... hoặc ten-file.mp4"/>
+            <button class="btn-hd-save" onclick="saveHuongDanVideo()">
+              <i class="fas fa-save"></i> Lưu
+            </button>
+          </div>
+          <div class="hd-hint-list">
+            <div class="hd-hint"><i class="fab fa-youtube" style="color:#ff4444"></i> YouTube: dán link bất kỳ dạng youtube.com hoặc youtu.be</div>
+            <div class="hd-hint"><i class="fas fa-file-video" style="color:#68b2a0"></i> File nội bộ: nhập tên file MP4 đã upload (vd: huongdan.mp4)</div>
+            <div class="hd-hint"><i class="fas fa-link" style="color:#c8a020"></i> URL trực tiếp: link http/https trỏ thẳng đến file MP4</div>
+          </div>
+        </div>
+
       </div>
     </div>
 

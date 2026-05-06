@@ -10,7 +10,11 @@
       "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/database.js','utf-8'\\); new Function\\(s\\); console.log\\('OK'\\)\")",
       "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/main/icp.js','utf-8'\\); new Function\\(s\\); console.log\\('OK'\\)\")",
       "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/admin/admin.js','utf-8'\\); new Function\\(s\\); console.log\\('OK - admin.js'\\)\")",
-      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/admin/sign_up_admin.html','utf-8'\\); console.log\\('HTML lines:', s.split\\('\\\\n'\\).length\\)\")"
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/admin/sign_up_admin.html','utf-8'\\); console.log\\('HTML lines:', s.split\\('\\\\n'\\).length\\)\")",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/main/icp.js','utf-8'\\); new Function\\(s\\); console.log\\('icp.js OK'\\)\")",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/main/backup_service.js','utf-8'\\); new Function\\(s\\); console.log\\('backup_service.js OK'\\)\")",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/database.js','utf-8'\\); new Function\\(s\\); console.log\\('database.js OK'\\)\")",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('c:/Lữ Đoàn 279/ThuVienSo/thu_vien_so/renderer/admin/admin.js','utf-8'\\); new Function\\(s\\); console.log\\('admin.js OK'\\)\")"
     ]
   }
 }

@@ -36,11 +36,13 @@ function mockCall(channel, ...args) {
         { total:data.length, thammu:0, chinhri:0, hckt:0 } };
     case 'open-file':
       return { ok:false, error:'Không tìm thấy — chạy Electron để mở file thật' };
+    case 'file:get-url':
+      return { ok:false, error:'Chay Electron de xem truoc file cuc bo' };
     case 'open-link-external':
       window.open(args[0], '_blank', 'noopener,noreferrer');
       return { ok:true };
     case 'giaithuong:getAll':
-      return { ok:true, data: window.MOCK_AWARDS || [] };
+      return { ok:true, data: Array.isArray(window.MOCK_AWARDS) ? window.MOCK_AWARDS : [] };
     default:
       return { ok:false, error:'Mock không hỗ trợ: ' + channel };
   }
@@ -85,18 +87,21 @@ window.openHoSoPath = async function(p) {
 async function init() {
   show('screen-loading');
 
+  // FIX: Đảm bảo không dùng null/undefined trong for...of hay destructuring
   try {
     const res = await call('sangkien:getAll');
-    if (res.ok && res.data && res.data.length > 0) {
-      allData = res.data;
+    // res.data có thể null nếu DB lỗi → luôn fallback về array
+    const rawData = (res && res.ok && Array.isArray(res.data)) ? res.data : null;
+    if (rawData && rawData.length > 0) {
+      allData = rawData;
       console.log(`[Thu Vien] Tải ${allData.length} sáng kiến từ SQLite`);
     } else {
-      // Fallback: dùng MOCK_DATA nếu DB rỗng hoặc lỗi
-      allData = window.MOCK_DATA || [];
-      console.warn('[Thu Vien] Dùng dữ liệu mẫu:', res.error || 'DB rỗng');
+      allData = Array.isArray(window.MOCK_DATA) ? window.MOCK_DATA : [];
+      console.warn('[Thu Vien] Dùng dữ liệu mẫu:', (res && res.error) || 'DB rỗng hoặc null');
     }
   } catch (e) {
-    allData = window.MOCK_DATA || [];
+    // FIX: catch mọi lỗi kể cả "null is not iterable"
+    allData = Array.isArray(window.MOCK_DATA) ? window.MOCK_DATA : [];
     console.warn('[Thu Vien] Exception, dùng mock:', e.message);
   }
 
@@ -143,13 +148,11 @@ function goHome() {
 }
 
 function goAdmin() {
-  // Mở trang admin trong cùng cửa sổ
-  window.close();
-  if (isElectron) {
-    const path = require('path');
-    const { remote } = require('electron');
-    // Dùng ipc để mở cửa sổ admin mới
-    if (ipc) ipc.send('open-admin');
+  // FIX: Bỏ window.close() — đóng cửa sổ trước khi IPC gửi xong gây crash sandbox
+  // FIX: Bỏ require('electron').remote — remote bị xóa từ Electron 14+
+  window.close(); 
+  if (ipc) {
+    ipc.send('open-admin'); // main process mở cửa sổ admin mới
   } else {
     window.location.href = './admin/sign_up_admin.html';
   }
@@ -601,7 +604,7 @@ function cardHTML(item) {
     <div class="item-card" onclick="openDetail(${item.id})">
       <div class="ic-type">${item.loai || ''}</div>
       <div class="ic-name">${item.ten}</div>
-      <div class="ic-meta">
+    <div class="ic-meta">
         <span>
           <i class="fas fa-calendar" style="color:var(--gold-d)"></i>
           ${item.ngay_ap_dung || ''}
@@ -614,10 +617,10 @@ function cardHTML(item) {
           <i class="fas fa-users" style="color:var(--gold-d)"></i>
           ${authorCount} tác giả
         </span>` : ''}
-      </div>
-      <div class="ic-stars">★★★★★</div>
-      <i class="fas fa-arrow-right ic-arrow"></i>
-    </div>`;
+    </div>
+    <div class="ic-stars">★★★★★</div>
+    <i class="fas fa-arrow-right ic-arrow"></i>
+  </div>`;
 }
 
 function emptyStateHTML() {
@@ -677,8 +680,8 @@ async function openDetail(id) {
         <div class="info-row">
           <span class="lbl">${escapeHtml(a.cap_bac || '')}</span>
           <span class="val">${escapeHtml(a.ho_ten)}${a.chuc_vu ? ' – ' + escapeHtml(a.chuc_vu) : ''}</span>
-        </div>`;
-    });
+    </div>`;
+  });
   } else {
     authHTML = `<div class="info-row">
       <span class="val" style="color:var(--dim)">Đang cập nhật</span>
@@ -787,17 +790,102 @@ function renderFilePreview(item) {
 }
 
 function openHoSoPath(fileName) {
+  return openFilePreviewModal(fileName);
+}
+
+function getFileKind(value) {
+  const clean = String(value || '').split('?')[0].toLowerCase();
+  const ext = clean.includes('.') ? clean.split('.').pop() : '';
+  if (ext === 'pdf') return 'pdf';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) return 'image';
+  if (['mp4', 'webm', 'ogg', 'mov'].includes(ext)) return 'video';
+  return 'other';
+}
+
+function isHttpUrl(value) {
+  return /^https?:\/\//i.test(String(value || '').trim());
+}
+
+async function getPreviewSource(fileName) {
+  const value = String(fileName || '').trim();
+  if (!value) return { ok: false, error: 'Ten file trong' };
+  if (isHttpUrl(value)) {
+    return {
+      ok: true,
+      url: value,
+      fileName: value.split('/').pop() || value,
+      ext: value.split('?')[0].split('.').pop().toLowerCase()
+    };
+  }
+  return await call('file:get-url', value);
+}
+
+async function openFilePreviewModal(fileName, label = 'Ho so') {
   if (!fileName) return;
 
-  call('open-file', fileName).then(res => {
-    console.log('[openHoSoPath] Result:', res);
-    if (!res || !res.ok) {
-      alert('Không thể mở tệp: ' + (res?.error || 'Unknown error'));
-    }
-  }).catch(err => {
-    console.error('[openHoSoPath] IPC error:', err);
-    alert('Lỗi IPC khi mở file');
-  });
+  const overlay = document.getElementById('modal-hoso');
+  const body = document.getElementById('modal-hoso-body');
+  const title = document.getElementById('modal-hoso-title');
+  if (!overlay || !body || !title) return;
+
+  title.textContent = label + ' - ' + fileName;
+  body.innerHTML = `
+    <div class="file-preview-loading">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span>Dang tai xem truoc...</span>
+    </div>`;
+  overlay.classList.add('open');
+
+  const res = await getPreviewSource(fileName);
+  if (!res.ok) {
+    body.innerHTML = `
+      <div class="file-preview-empty">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>${escapeHtml(res.error || 'Khong the tai file')}</p>
+      </div>`;
+    return;
+  }
+
+  const url = res.url;
+  const name = res.fileName || fileName;
+  const kind = getFileKind(name || url);
+  let previewHtml = '';
+
+  if (kind === 'pdf') {
+    previewHtml = `<iframe class="file-preview-frame" src="${escapeHtml(url)}" title="${escapeHtml(name)}"></iframe>`;
+  } else if (kind === 'image') {
+    previewHtml = `<div class="file-preview-image-wrap"><img src="${escapeHtml(url)}" alt="${escapeHtml(name)}"></div>`;
+  } else if (kind === 'video') {
+    previewHtml = `<div class="file-preview-video-wrap"><video src="${escapeHtml(url)}" controls playsinline></video></div>`;
+  } else {
+    previewHtml = `
+      <div class="file-preview-empty">
+        <i class="fas fa-file-alt"></i>
+        <p>Dinh dang nay chua ho tro xem truoc trong ung dung.</p>
+      </div>`;
+  }
+
+  body.innerHTML = `
+    <div class="file-preview-shell">
+      <div class="file-preview-toolbar">
+        <div>
+          <div class="file-preview-name">${escapeHtml(name)}</div>
+          <div class="file-preview-kind">${escapeHtml((res.ext || kind || 'file').toUpperCase())}</div>
+        </div>
+        <button type="button" class="action-btn secondary file-preview-open" id="file-preview-open-external">
+          <i class="fas fa-external-link-alt"></i> Mo ngoai
+        </button>
+      </div>
+      ${previewHtml}
+    </div>`;
+
+  const openBtn = document.getElementById('file-preview-open-external');
+  if (openBtn) {
+    openBtn.onclick = async () => {
+      if (isHttpUrl(fileName)) window.open(fileName, '_blank', 'noopener,noreferrer');
+      else await call('open-file', fileName);
+    };
+  }
 }
 
 window.openHoSoFile = function (index) {
@@ -805,6 +893,8 @@ window.openHoSoFile = function (index) {
   if (!hs || !hs[index]) return;
   openHoSoPath(hs[index].duong_dan);
 };
+
+window.openHoSoPath = openHoSoPath;
 
 function openVideoModal() {
   const item = currentItem;
@@ -825,8 +915,15 @@ function openVideoModal() {
   const embed = toYouTubeEmbed(url);
   if (embed) {
     body.innerHTML = `<div class="lib-video-wrap"><iframe src="${embed}" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
-  } else if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(url)) {
-    body.innerHTML = `<div class="lib-video-wrap"><video src="${escapeHtml(url)}" controls playsinline></video></div>`;
+  } else if (getFileKind(url) === 'video') {
+    body.innerHTML = '<div class="file-preview-loading"><i class="fas fa-spinner fa-spin"></i><span>Dang tai video...</span></div>';
+    getPreviewSource(url).then(res => {
+      if (res.ok) {
+        body.innerHTML = `<div class="lib-video-wrap"><video src="${escapeHtml(res.url)}" controls playsinline></video></div>`;
+      } else {
+        body.innerHTML = `<p class="lib-video-fallback">${escapeHtml(res.error || 'Khong the tai video')}</p>`;
+      }
+    });
   } else {
     body.innerHTML = `
       <p class="lib-video-fallback">${escapeHtml(url)}</p>
@@ -919,13 +1016,13 @@ function openHoSoModal() {
     row.addEventListener('click', () => {
       const p = files[idx] && files[idx].path.replace(/\\/g, '/');
       console.log('[openHoSoModal] Mở file idx:', idx, 'path:', p);
-      openHoSoPath(p);
+      openFilePreviewModal(p, files[idx].ten);
     });
   });
 
   // Xử lý sự kiện mở video ngoài
   const hv = document.getElementById('modal-hoso-open-video');
-  if (hv && v) hv.onclick = () => window.open(v, '_blank', 'noopener,noreferrer');
+  if (hv && v) hv.onclick = () => openVideoModal();
 
   // Khởi tạo QR Code nếu có dữ liệu (Sử dụng thư viện QRCode.js có sẵn)
   if (qrText && typeof QRCode !== 'undefined') {
@@ -948,9 +1045,16 @@ function closeHoSoModal() {
 
 // ── Parse authors (SQLite trả về JSON string) ──
 function parseAuthors(authors) {
-  if (!authors) return [];
-  if (Array.isArray(authors)) return authors;
-  try { return JSON.parse(authors); } catch { return []; }
+  // FIX: guard đầy đủ — tránh "null is not iterable"
+  if (authors == null) return [];
+  if (Array.isArray(authors)) return authors.filter(Boolean);
+  if (typeof authors === 'string' && authors.trim()) {
+    try {
+      const parsed = JSON.parse(authors);
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch { return []; }
+  }
+  return [];
 }
 
 // ══════════════════════════════════════
@@ -1170,8 +1274,14 @@ function renderCompareView() {
 
 function rebuildCompareChart() {
   const lv = (document.getElementById('cmp-field-filter') || {}).value || '';
+  // FIX: guard null cho DataUtils
   const utils = window.DataUtils;
-  if (!utils) return;
+  if (!utils) {
+    setTimeout(() => {
+      if (window.DataUtils && currentTab === 'compare') rebuildCompareChart();
+    }, 500);
+    return;
+  }
 
   const source  = lv ? allData.filter(d => d.linh_vuc === lv) : allData;
   const grouped = utils.groupByYearAndField(source);
@@ -1592,8 +1702,20 @@ const AWARD_STYLE = {
 
 async function renderHonorView() {
   const container = document.getElementById('home-content');
+  // FIX: DataUtils có thể chưa load → guard null an toàn
   const utils = window.DataUtils;
-  if (!utils) { container.innerHTML = '<p>Lỗi: DataUtils chưa tải.</p>'; return; }
+  if (!utils) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>Đang tải tiện ích dữ liệu, vui lòng thử lại...</p>
+      </div>`;
+    // Retry sau 500ms nếu DataUtils vừa load xong
+    setTimeout(() => {
+      if (window.DataUtils && currentTab === 'honor') renderHonorView();
+    }, 500);
+    return;
+  }
 
   // ── Skeleton loading ──
   container.innerHTML = `
@@ -1872,8 +1994,20 @@ function buildHonorChart(ranks, { labels, values, colors }) {
 
 function renderUnitView() {
   const container = document.getElementById('home-content');
+  // FIX: DataUtils có thể chưa load → guard null an toàn
   const utils = window.DataUtils;
-  if (!utils) { container.innerHTML = '<p>Lỗi: DataUtils chưa tải.</p>'; return; }
+  if (!utils) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>Đang tải tiện ích dữ liệu, vui lòng thử lại...</p>
+      </div>`;
+    // Retry sau 500ms nếu DataUtils vừa load xong
+    setTimeout(() => {
+      if (window.DataUtils && currentTab === 'honor') renderHonorView();
+    }, 500);
+    return;
+  }
 
   const units    = utils.groupByUnit(allData);
   const chartDat = utils.toUnitChartData(units, 10);

@@ -2,6 +2,7 @@
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 const { registerIPC } = require('./icp');
 
 // ══════════════════════════════════════
@@ -56,6 +57,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
+      sandbox: false,
       webSecurity: false,
       devTools: true
     },
@@ -79,7 +81,12 @@ function setupHandlers() {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
+        // { name: 'Tat ca tep ho tro', extensions: ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'ogg', 'mov', 'doc', 'docx', 'dwg', 'xlsx', 'xls', 'csv'] },
         { name: 'PDF', extensions: ['pdf'] },
+        // { name: 'Anh', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp'] },
+        // { name: 'Video', extensions: ['mp4', 'webm', 'ogg', 'mov'] },
+        // { name: 'Office / CAD', extensions: ['doc', 'docx', 'dwg', 'xlsx', 'xls', 'csv'] },
+     
         // { name: 'Tất cả tài liệu', extensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'dwg', 'xlsx', 'xls', 'csv', 'mp4', 'avi', 'mkv'] },
         // { name: 'PDF', extensions: ['pdf'] },
         // { name: 'Ảnh', extensions: ['jpg', 'jpeg', 'png', 'gif'] },
@@ -111,16 +118,44 @@ function setupHandlers() {
 
   // ── Mở file đính kèm ──
 
+  function resolveStoredFile(fileName) {
+    if (!fileName) return null;
+    return path.normalize(
+      path.isAbsolute(fileName)
+        ? fileName
+        : path.join(FILE_DIR, path.basename(fileName))
+    );
+  }
+
+  ipcMain.handle('file:get-url', async (_, fileName) => {
+    try {
+      const fullPath = resolveStoredFile(fileName);
+      if (!fullPath) {
+        return { ok: false, error: 'Ten file trong' };
+      }
+      if (!fs.existsSync(fullPath)) {
+        return { ok: false, error: 'Khong tim thay file: ' + fullPath };
+      }
+
+      return {
+        ok: true,
+        fileName: path.basename(fullPath),
+        filePath: fullPath,
+        url: pathToFileURL(fullPath).href,
+        ext: path.extname(fullPath).replace('.', '').toLowerCase()
+      };
+    } catch (err) {
+      console.error('[file:get-url] Loi:', err);
+      return { ok: false, error: err.message };
+    }
+  });
+
   ipcMain.handle('open-file', async (_, fileName) => {
     try {
       if (!fileName) {
         return { ok: false, error: 'Tên file trống' };
       }
-      const fullPath = path.normalize(
-        path.isAbsolute(fileName)
-          ? fileName
-          : path.join(FILE_DIR, path.basename(fileName))
-      );
+      const fullPath = resolveStoredFile(fileName);
 
       if (!fs.existsSync(fullPath)) {
         return { ok: false, error: 'Không tìm thấy file: ' + fullPath };
@@ -172,4 +207,4 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
-}); 
+});

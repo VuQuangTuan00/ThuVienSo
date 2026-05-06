@@ -910,7 +910,10 @@ body {
   border-radius: 24px;
   box-shadow: 0 16px 48px rgba(44,105,117,.16);
 }
-.lib-modal-wide { max-width: 720px; }
+.lib-modal-wide { 
+  max-width: 100%; 
+  height: 1000px;
+}
 
 .lib-modal-head {
   flex-shrink: 0;
@@ -940,8 +943,16 @@ body {
 .lib-modal-close:hover { color: var(--gold); }
 
 .lib-modal-body {
+  flex: 1;
+  min-height: 0;
   padding: 18px;
   overflow-y: auto;
+}
+/* Modal rộng chứa PDF/file: bỏ padding để iframe chiếm full */
+.lib-modal-wide .lib-modal-body {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .lib-video-wrap {
@@ -968,6 +979,98 @@ body {
   word-break: break-all;
 }
 .lib-video-fallback a { color: var(--gold-l); }
+
+.file-preview-loading,
+.file-preview-empty {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.file-preview-loading i,
+.file-preview-empty i {
+  font-size: 28px;
+  color: var(--gold);
+}
+
+.file-preview-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.file-preview-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(104,178,160,.18);
+  background: rgba(44,105,117,.08);
+}
+
+.file-preview-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 15px;
+  color: var(--cream);
+  word-break: break-all;
+}
+
+.file-preview-kind {
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--dim);
+}
+
+.file-preview-open {
+  flex-shrink: 0;
+}
+
+.file-preview-frame {
+  flex: 1;
+  min-height: 320px;
+  width: 100%;
+  border: none;
+  border-top: 1px solid rgba(104,178,160,.18);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.file-preview-image-wrap,
+.file-preview-video-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  max-height: 72vh;
+  border: 1px solid rgba(104,178,160,.18);
+  border-radius: 12px;
+  overflow: auto;
+  background: rgba(44,105,117,.08);
+}
+
+.file-preview-image-wrap img {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+.file-preview-video-wrap video {
+  width: 100%;
+  max-height: 70vh;
+  background: #000;
+}
 
 .hoso-section-title {
   font-family: 'Oswald', sans-serif;

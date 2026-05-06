@@ -98,6 +98,9 @@ function adminMockCall(channel, ...args) {
     case 'admin:copy-file':
       return { ok: false, error: 'Cần chạy Electron để copy file' };
 
+    case 'file:get-url':
+      return { ok: false, error: 'Can chay Electron de xem truoc file cuc bo' };
+
     case 'giaithuong:getAll':
       return { ok: true, data: _mockGiaiThuongDb };
 
@@ -213,7 +216,7 @@ function show(id) {
   document.getElementById(id).classList.add('active');
 }
 
-const PAGE_TITLES = { dashboard: 'Tổng quan', sangkien: 'Quản lý sáng kiến', giaithuong: 'Giải thưởng & Huy chương', settings: 'Cài đặt', backup: 'Backup / Restore' };
+const PAGE_TITLES = { dashboard: 'Tổng quan', sangkien: 'Quản lý sáng kiến', giaithuong: 'Giải thưởng & Huy chương', settings: 'Cài đặt', backup: 'Backup / Restore', huongdan: 'Hướng Dẫn Sử Dụng' };
 
 function showPage(page, el) {
   document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
@@ -294,7 +297,14 @@ async function loadDashboard() {
       `<tr class="table-empty"><td colspan="4">Không tải được dữ liệu</td></tr>`;
     return;
   }
-  const recent = dRes.data.slice(0, 8);
+  const recent = [...dRes.data]
+    .sort((a, b) => {
+      const da = new Date(a.created_at || 0).getTime();
+      const db = new Date(b.created_at || 0).getTime();
+      if (db !== da) return db - da;
+      return Number(b.id || 0) - Number(a.id || 0);
+    })
+    .slice(0, 8);
   const LABEL = { thammu: 'Tham mưu', chinhri: 'Chính trị', hckt: 'Hậu cần - Kỹ thuật' };
   const BADGE = { thammu: 'badge-tm', chinhri: 'badge-ct', hckt: 'badge-hk' };
 
@@ -815,7 +825,7 @@ function isYoutube(url) {
   return url.includes('youtube.com') || url.includes('youtu.be');
 }
 
-function openVideoModal(url) {
+async function openVideoModal(url) {
   if (!url) { showToast('Chưa có liên kết video', 'error'); return; }
 
   const overlay = document.getElementById('video-modal-overlay');
@@ -832,10 +842,20 @@ function openVideoModal(url) {
         style="width:100%;height:100%;border:none">
       </iframe>`;
   } else {
+    let src = url;
+    if (!/^https?:\/\//i.test(url) && ipc) {
+      const res = await call('file:get-url', url);
+      if (!res.ok) {
+        showToast(res.error || 'Khong the tai video', 'error');
+        return;
+      }
+      src = res.url;
+    }
+
     // File video local
     container.innerHTML = `
       <video controls autoplay style="width:100%;height:100%;background:#000;">
-        <source src="${url}">
+        <source src="${src}">
         <p style="color:#fff;padding:20px">Không thể phát video. Định dạng không được hỗ trợ.</p>
       </video>`;
   }
@@ -1120,6 +1140,77 @@ async function doRestore() {
   } else {
     showToast('❌ Phục hồi thất bại: ' + res.error, 'error');
   }
+}
+
+// ══════════════════════════════════════
+//  HƯỚNG DẪN SỬ DỤNG (VIDEO TUTORIAL)
+// ══════════════════════════════════════
+
+async function loadHuongDan() {
+  const res = await call('config:get', 'tutorial_video_url');
+  const url = res.ok ? (res.value || '') : '';
+  document.getElementById('hd-video-url').value = url;
+  _renderTutorialVideo(url);
+}
+
+async function saveHuongDanVideo() {
+  const url = document.getElementById('hd-video-url').value.trim();
+  const res = await call('config:set', { key: 'tutorial_video_url', value: url });
+  if (!res.ok) { showToast('Lỗi lưu: ' + res.error, 'error'); return; }
+  _renderTutorialVideo(url);
+  showToast(url ? '✅ Đã lưu video hướng dẫn' : '✅ Đã xóa video hướng dẫn', 'success');
+}
+
+function _renderTutorialVideo(url) {
+  const empty  = document.getElementById('hd-video-empty');
+  const player = document.getElementById('hd-video-player');
+  if (!url) {
+    empty.style.display  = '';
+    player.style.display = 'none';
+    player.innerHTML     = '';
+    return;
+  }
+
+  let html = '';
+  const ytMatch = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+  );
+
+  if (ytMatch) {
+    // YouTube embed
+    const vid = ytMatch[1];
+    html = `<iframe src="https://www.youtube.com/embed/${vid}?rel=0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen></iframe>`;
+  } else if (/^https?:\/\//i.test(url)) {
+    // URL trực tiếp (MP4, ...)
+    html = `<video src="${_escHtml(url)}" controls playsinline></video>`;
+  } else {
+    // Tên file nội bộ — dùng file:get-url
+    if (ipc) {
+      ipc.invoke('file:get-url', url).then(res => {
+        if (res.ok) {
+          player.innerHTML     = `<video src="${_escHtml(res.url)}" controls playsinline></video>`;
+          empty.style.display  = 'none';
+          player.style.display = '';
+        } else {
+          empty.style.display  = '';
+          player.style.display = 'none';
+          showToast('Không tìm thấy file: ' + url, 'error');
+        }
+      });
+      return;
+    }
+    html = `<video src="${_escHtml(url)}" controls playsinline></video>`;
+  }
+
+  player.innerHTML     = html;
+  empty.style.display  = 'none';
+  player.style.display = '';
+}
+
+function _escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── Keyboard shortcuts ──

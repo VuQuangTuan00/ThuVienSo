@@ -21,15 +21,19 @@ const path   = require('path');
 const os     = require('os');
 const crypto = require('crypto');
 const AdmZip = require('adm-zip');
-const { app } = require('electron');
-
-const BACKUP_VERSION = '1';   // tăng khi format backup thay đổi
-const SCHEMA_VERSION = 3;     // tăng khi DB schema thay đổi
+const BACKUP_VERSION = '1';
+const SCHEMA_VERSION = 3;
 const APP_VERSION    = '1.0.0';
 
-const USER_DATA = app.getPath('userData');
-const DB_PATH   = path.join(USER_DATA, 'sangkien.db');
-const FILE_DIR  = path.join(USER_DATA, 'files');
+// Lazy — gọi bên trong hàm để tránh race condition với app.whenReady()
+function getPaths() {
+  const { app } = require('electron');
+  const USER_DATA = app.getPath('userData');
+  return {
+    DB_PATH:  path.join(USER_DATA, 'sangkien.db'),
+    FILE_DIR: path.join(USER_DATA, 'files'),
+  };
+}
 
 // ──────────────────────────────────────────
 //  Helpers
@@ -82,6 +86,7 @@ function readBackupManifest(zipPath) {
  * @returns {{ ok: boolean, path?: string, manifest?: object, error?: string }}
  */
 async function createBackup(destZipPath, db, onProgress) {
+  const { DB_PATH, FILE_DIR } = getPaths();
   const tempDir    = path.join(os.tmpdir(), `tvs-backup-${Date.now()}`);
   const tempDbDir  = path.join(tempDir, 'database');
   const tempDbPath = path.join(tempDbDir, 'sangkien.db');
@@ -180,6 +185,7 @@ async function createBackup(destZipPath, db, onProgress) {
  * @returns {{ ok: boolean, manifest?: object, error?: string }}
  */
 async function restoreBackup(zipPath, dbModule, onProgress) {
+  const { DB_PATH, FILE_DIR } = getPaths();
   const tempDir       = path.join(os.tmpdir(), `tvs-restore-${Date.now()}`);
   const rollbackDb    = DB_PATH  + '.rollback';
   const rollbackFiles = FILE_DIR + '_rollback';
@@ -291,6 +297,4 @@ module.exports = {
   restoreBackup,
   readBackupManifest,
   formatTimestamp,
-  DB_PATH,
-  FILE_DIR,
 };

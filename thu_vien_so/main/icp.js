@@ -1,10 +1,12 @@
 // File: src/main/ipc.js
-const { ipcMain, BrowserWindow, app } = require('electron');
+const { ipcMain, BrowserWindow, app, dialog } = require('electron');
 const path = require('path');
 const fs   = require('fs');
 const db   = require('../renderer/database');
 const { fuzzyCheckNewSangKien } = require('./fuzzy');
 const { checkAllFiles }         = require('./file_check');
+const { createBackup, restoreBackup, readBackupManifest, formatTimestamp } =
+  require('./backup_service');
 
 function registerIPC() {
 
@@ -138,6 +140,20 @@ function registerIPC() {
   });
 
   // ══════════════════════════════════════
+  //  CONFIG CHUNG (key-value)
+  // ══════════════════════════════════════
+
+  ipcMain.handle('config:get', (_, key) => {
+    try { return { ok: true, value: db.getConfigValue(key) }; }
+    catch(e) { return { ok: false, error: e.message }; }
+  });
+
+  ipcMain.handle('config:set', (_, { key, value }) => {
+    try { db.setConfigValue(key, value); return { ok: true }; }
+    catch(e) { return { ok: false, error: e.message }; }
+  });
+
+  // ══════════════════════════════════════
   //  THỐNG KÊ
   // ══════════════════════════════════════
 
@@ -158,6 +174,7 @@ function registerIPC() {
       webPreferences: {
         nodeIntegration:  true,
         contextIsolation: false,
+        sandbox:          false,
         webSecurity:      false,
       },
       autoHideMenuBar: true,
@@ -170,10 +187,6 @@ function registerIPC() {
   // ══════════════════════════════════════
   //  BACKUP / RESTORE
   // ══════════════════════════════════════
-
-  const { dialog } = require('electron');
-  const { createBackup, restoreBackup, readBackupManifest, formatTimestamp } =
-    require('./backup_service');
 
   // Xem trước manifest — dùng trước khi hỏi confirm restore
   ipcMain.handle('backup:preview', async () => {
