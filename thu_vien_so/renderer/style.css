@@ -2153,3 +2153,10 @@ mark.search-hl {
     width: 32px;
     text-align: center;
   }
+.huongdan-video-section {
+  margin-bottom: 18px;
+}
+
+.huongdan-video-section .hoso-section-title {
+  margin-bottom: 10px;
+}

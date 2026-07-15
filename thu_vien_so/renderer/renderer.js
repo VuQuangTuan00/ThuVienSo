@@ -52,6 +52,7 @@ function mockCall(channel, ...args) {
 let allData    = [];
 let currentTab = 'all';
 let currentItem = null;
+let huongDanTemplateHtml = '';
 
 // ── Constants ──
 const TAB_LABELS = {
@@ -1823,12 +1824,97 @@ async function renderHonorView() {
 
 // Mở, Đóng modal
 
- function openHuongDan() {
-    document.getElementById('modal-huongdan').style.display = 'flex';
+async function openHuongDan() {
+  const overlay = document.getElementById('modal-huongdan');
+  const body = overlay ? overlay.querySelector('.lib-modal-body') : null;
+  if (!overlay || !body) return;
+
+  if (!huongDanTemplateHtml) huongDanTemplateHtml = body.innerHTML;
+
+  overlay.style.display = 'flex';
+  body.innerHTML = `
+    <div class="file-preview-loading">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span>Dang tai video huong dan...</span>
+    </div>`;
+
+  const res = await call('config:get', 'tutorial_video_url');
+  const url = res && res.ok ? String(res.value || '').trim() : '';
+  body.innerHTML = await buildHuongDanBodyHtml(url, res && !res.ok ? res.error : '');
+}
+
+async function buildHuongDanBodyHtml(url, errorMessage = '') {
+  const guideHtml = huongDanTemplateHtml || '';
+  const videoSection = await buildHuongDanVideoSection(url, errorMessage);
+  return videoSection + guideHtml;
+}
+
+async function buildHuongDanVideoSection(url, errorMessage = '') {
+  if (errorMessage) {
+    return `
+      <div class="huongdan-video-section">
+        <div class="hoso-section-title">Video huong dan</div>
+        <p class="lib-video-fallback">${escapeHtml(errorMessage)}</p>
+      </div>`;
   }
-  function closeHuongDan() {
-    document.getElementById('modal-huongdan').style.display = 'none';
+
+  if (!url) {
+    return '';
   }
+
+  const embed = toYouTubeEmbed(url);
+  if (embed) {
+    return `
+      <div class="huongdan-video-section">
+        <div class="hoso-section-title">Video huong dan</div>
+        <div class="lib-video-wrap">
+          <iframe src="${embed}" title="Video huong dan" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+      </div>`;
+  }
+
+  if (getFileKind(url) === 'video' || !isHttpUrl(url)) {
+    const res = await getPreviewSource(url);
+    if (res.ok) {
+      return `
+        <div class="huongdan-video-section">
+          <div class="hoso-section-title">Video huong dan</div>
+          <div class="lib-video-wrap">
+            <video src="${escapeHtml(res.url)}" controls playsinline></video>
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div class="huongdan-video-section">
+        <div class="hoso-section-title">Video huong dan</div>
+        <p class="lib-video-fallback">${escapeHtml(res.error || 'Khong the tai video huong dan')}</p>
+      </div>`;
+  }
+
+  return `
+    <div class="huongdan-video-section">
+      <div class="hoso-section-title">Video huong dan</div>
+      <p class="lib-video-fallback">${escapeHtml(url)}</p>
+      <button type="button" class="action-btn primary" id="huongdan-open-external" data-url="${escapeHtml(url)}" style="margin-top:12px">
+        <i class="fas fa-external-link-alt"></i> Mo lien ket
+      </button>
+    </div>`;
+}
+
+function closeHuongDan() {
+  const overlay = document.getElementById('modal-huongdan');
+  const body = overlay ? overlay.querySelector('.lib-modal-body') : null;
+  if (body && huongDanTemplateHtml) body.innerHTML = huongDanTemplateHtml;
+  if (overlay) overlay.style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('#huongdan-open-external');
+  if (!btn) return;
+  const url = (btn.getAttribute('data-url') || '').trim();
+  if (url) window.open(url, '_blank', 'noopener,noreferrer');
+});
 
 // ── Render grid giải thưởng ──
 function _buildAwardGrid(awards) {

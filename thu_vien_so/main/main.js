@@ -65,9 +65,7 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, '../renderer/index.html'));
-
-  // Bật khi debug
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools();
 }
 
 // ══════════════════════════════════════
